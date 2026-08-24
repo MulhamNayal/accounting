@@ -427,3 +427,15 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# --- Never commit source-system data (this repo is public) ---
+# Firebird / legacy accounting company files and backups
+*.fdb
+*.FDB
+*.fbk
+*.gbk
+*.gdb
+# Sample or exported accounting data
+/samples/
+/migration-data/
+*.company
