@@ -56,9 +56,20 @@ owns and exports.
 
 ## Stack
 
-Intended, not yet committed: ASP.NET Core / C# backend, React + TypeScript frontend,
-SQL Server. Chosen for continuity with existing work rather than because the domain
-demands it — revisit before the first line of the ledger is written.
+Backend and database are intended, not yet committed: ASP.NET Core / C# and SQL Server,
+chosen for continuity with existing work rather than because the domain demands it.
+Revisit before the first line of the ledger is written.
+
+The frontend is decided: **React + TypeScript with Fluent UI React**
+(`@fluentui/react-components`), Microsoft's official implementation of the Fluent 2
+design language. ClearWise should look and feel like a Windows 11 application, because
+the people it is for spend their working day in Windows desktop accounting software and
+Office. Familiarity is a feature, not a vanity choice.
+
+Deliberately web rather than native WinUI 3: a single-machine, Windows-only application
+would reproduce the exact limitation this project exists to remove. A desktop shell
+(WebView2 or Tauri) over the same codebase remains open if offline operation turns out
+to be a hard requirement.
 
 ## Licence
 
