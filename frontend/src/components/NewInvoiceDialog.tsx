@@ -19,6 +19,7 @@ import {
 import { AddRegular, DeleteRegular } from '@fluentui/react-icons'
 import { useEffect, useMemo, useState } from 'react'
 import type { AccountSummary } from '../api/accounts'
+import { todayLocal } from '../api/dates'
 import { formatMoney } from '../api/journalEntries'
 import { createSalesInvoice } from '../api/salesInvoices'
 import type { CustomerSummary } from '../api/salesInvoices'
@@ -66,7 +67,7 @@ export function NewInvoiceDialog({ open, onOpenChange, entityId, customers, acco
 }) {
   const styles = useStyles()
   const [customerId, setCustomerId] = useState('')
-  const [docDate, setDocDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [docDate, setDocDate] = useState(todayLocal)
   const [reference, setReference] = useState('')
   const [lines, setLines] = useState<DraftLine[]>([{ ...EMPTY }])
   const [error, setError] = useState<string | null>(null)

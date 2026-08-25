@@ -33,6 +33,7 @@ import { AddRegular, CheckmarkCircleRegular, LinkRegular } from '@fluentui/react
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getAccounts } from '../api/accounts'
 import type { AccountSummary } from '../api/accounts'
+import { todayLocal } from '../api/dates'
 import { formatMoney } from '../api/journalEntries'
 import {
   allocate,
@@ -258,7 +259,7 @@ function NewReceiptDialog({ open, onOpenChange, entityId, customers, accounts, o
   const styles = useStyles()
   const [customerId, setCustomerId] = useState('')
   const [bankAccountId, setBankAccountId] = useState('')
-  const [receiptDate, setReceiptDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [receiptDate, setReceiptDate] = useState(todayLocal)
   const [amount, setAmount] = useState('')
   const [reference, setReference] = useState('')
   const [error, setError] = useState<string | null>(null)

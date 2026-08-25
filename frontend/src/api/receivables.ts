@@ -1,4 +1,5 @@
 import { getJson, postJson } from './client'
+import { todayLocal } from './dates'
 
 export interface ReceiptSummary {
   id: string
@@ -116,12 +117,17 @@ export function getOpenInvoices(entityId: string, customerId?: string): Promise<
   return getJson<OpenInvoice[]>(`/api/receivables/open-invoices?entityId=${entityId}${suffix}`)
 }
 
-export function getAgeing(entityId: string): Promise<AgeingReport> {
-  return getJson<AgeingReport>(`/api/receivables/ageing?entityId=${entityId}`)
+/** The date is sent explicitly for the same reason as the trial balance — see getTrialBalance. */
+export function getAgeing(entityId: string, asOf: string = todayLocal()): Promise<AgeingReport> {
+  return getJson<AgeingReport>(`/api/receivables/ageing?entityId=${entityId}&asOf=${asOf}`)
 }
 
-export function getStatement(entityId: string, customerId: string): Promise<CustomerStatement> {
+export function getStatement(
+  entityId: string,
+  customerId: string,
+  asOf: string = todayLocal(),
+): Promise<CustomerStatement> {
   return getJson<CustomerStatement>(
-    `/api/receivables/statement?entityId=${entityId}&customerId=${customerId}`,
+    `/api/receivables/statement?entityId=${entityId}&customerId=${customerId}&asOf=${asOf}`,
   )
 }

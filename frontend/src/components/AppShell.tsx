@@ -29,6 +29,8 @@ import {
   DocumentBulletListRegular,
   DocumentTableFilled,
   DocumentTableRegular,
+  BoxFilled,
+  BoxRegular,
   MoneyFilled,
   MoneyRegular,
   ScalesFilled,
@@ -51,6 +53,7 @@ const ScalesIcon = bundleIcon(ScalesFilled, ScalesRegular)
 const InvoicesIcon = bundleIcon(DocumentBulletListFilled, DocumentBulletListRegular)
 const ReceiptsIcon = bundleIcon(MoneyFilled, MoneyRegular)
 const AgeingIcon = bundleIcon(ClockFilled, ClockRegular)
+const StockIcon = bundleIcon(BoxFilled, BoxRegular)
 const SettingsIcon = bundleIcon(SettingsFilled, SettingsRegular)
 
 const useStyles = makeStyles({
@@ -85,6 +88,10 @@ const SALES_ITEMS = [
   { path: '/invoices', label: 'Invoices', icon: <InvoicesIcon /> },
   { path: '/receipts', label: 'Receipts', icon: <ReceiptsIcon /> },
   { path: '/ageing', label: 'Ageing', icon: <AgeingIcon /> },
+]
+
+const STOCK_ITEMS = [
+  { path: '/stock', label: 'Stock', icon: <StockIcon /> },
 ]
 
 const LEDGER_ITEMS = [
@@ -147,6 +154,13 @@ export function AppShell({
 
           <NavSectionHeader>Sales</NavSectionHeader>
           {SALES_ITEMS.map((item) => (
+            <NavItem key={item.path} icon={item.icon} value={item.path}>
+              {item.label}
+            </NavItem>
+          ))}
+
+          <NavSectionHeader>Stock</NavSectionHeader>
+          {STOCK_ITEMS.map((item) => (
             <NavItem key={item.path} icon={item.icon} value={item.path}>
               {item.label}
             </NavItem>

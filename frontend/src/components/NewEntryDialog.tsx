@@ -19,6 +19,7 @@ import {
 import { AddRegular, DeleteRegular } from '@fluentui/react-icons'
 import { useMemo, useState } from 'react'
 import type { AccountSummary } from '../api/accounts'
+import { todayLocal } from '../api/dates'
 import { formatMoney, postJournalEntry } from '../api/journalEntries'
 import type { PostingLineRequest } from '../api/journalEntries'
 
@@ -54,7 +55,7 @@ export function NewEntryDialog({ open, onOpenChange, entityId, accounts, onPoste
   onPosted: () => void
 }) {
   const styles = useStyles()
-  const [entryDate, setEntryDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [entryDate, setEntryDate] = useState(todayLocal)
   const [memo, setMemo] = useState('')
   const [lines, setLines] = useState<DraftLine[]>([
     { ...EMPTY, direction: 'Debit' },

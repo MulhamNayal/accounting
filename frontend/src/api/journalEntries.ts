@@ -1,4 +1,5 @@
 import { getJson, postJson } from './client'
+import { todayLocal } from './dates'
 
 export interface JournalEntrySummary {
   id: string
@@ -92,8 +93,13 @@ export function reverseJournalEntry(id: string, reasonCode: string): Promise<Jou
   return postJson<JournalEntryDetail>(`/api/journal-entries/${id}/reverse`, { reasonCode })
 }
 
-export function getTrialBalance(entityId: string): Promise<TrialBalance> {
-  return getJson<TrialBalance>(`/api/trial-balance?entityId=${entityId}`)
+/**
+ * The date is always sent explicitly. Omitting it makes the server fall back to UTC today,
+ * which east of Greenwich is yesterday for part of every day — and a trial balance dated
+ * yesterday silently omits everything posted today.
+ */
+export function getTrialBalance(entityId: string, asOf: string = todayLocal()): Promise<TrialBalance> {
+  return getJson<TrialBalance>(`/api/trial-balance?entityId=${entityId}&asOf=${asOf}`)
 }
 
 export function formatMoney(value: number): string {
