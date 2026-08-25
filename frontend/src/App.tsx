@@ -1,171 +1,133 @@
 import {
-  Badge,
   Body1,
   Caption1,
+  FluentProvider,
   Spinner,
-  Subtitle1,
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableHeaderCell,
-  TableRow,
-  Title2,
+  Title3,
   makeStyles,
   tokens,
+  webDarkTheme,
+  webLightTheme,
 } from '@fluentui/react-components'
 import { useEffect, useState } from 'react'
-import { getAccounts } from './api/accounts'
-import type { AccountSummary } from './api/accounts'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { getEntities } from './api/entities'
 import type { LegalEntitySummary } from './api/entities'
+import { AppShell } from './components/AppShell'
+import { ChartOfAccountsPage } from './pages/ChartOfAccountsPage'
+import { EntitiesPage } from './pages/EntitiesPage'
+import { PlaceholderPage } from './pages/PlaceholderPage'
 
 const useStyles = makeStyles({
-  page: {
-    maxWidth: '1100px',
-    margin: '0 auto',
-    padding: '32px 24px 64px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '32px',
+  centre: {
+    height: '100vh',
+    display: 'grid',
+    placeItems: 'center',
+    gap: tokens.spacingVerticalM,
+    padding: tokens.spacingHorizontalXXL,
+    textAlign: 'center',
   },
-  header: { display: 'flex', flexDirection: 'column', gap: '4px' },
-  section: { display: 'flex', flexDirection: 'column', gap: '12px' },
-  card: {
-    border: `1px solid ${tokens.colorNeutralStroke2}`,
-    borderRadius: tokens.borderRadiusMedium,
-    overflowX: 'auto',
-  },
-  indent: { paddingLeft: '24px' },
-  muted: { color: tokens.colorNeutralForeground3 },
-  error: { color: tokens.colorPaletteRedForeground1 },
 })
+
+const THEME_KEY = 'clearwise.theme'
 
 function App() {
   const styles = useStyles()
   const [entities, setEntities] = useState<LegalEntitySummary[]>([])
-  const [accounts, setAccounts] = useState<AccountSummary[]>([])
+  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isDark, setIsDark] = useState(() => {
+    try {
+      return localStorage.getItem(THEME_KEY) === 'dark'
+    } catch {
+      return false
+    }
+  })
 
   useEffect(() => {
-    Promise.all([getEntities(), getAccounts()])
-      .then(([loadedEntities, loadedAccounts]) => {
-        setEntities(loadedEntities)
-        setAccounts(loadedAccounts)
+    getEntities()
+      .then((loaded) => {
+        setEntities(loaded)
+        setSelectedEntityId((current) => current ?? loaded[0]?.id ?? null)
       })
-      .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)))
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false))
   }, [])
 
+  const handleToggleTheme = (dark: boolean) => {
+    setIsDark(dark)
+    try {
+      localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light')
+    } catch {
+      // Storage can be unavailable (private windows, blocked site data). The toggle still
+      // works for this session; it simply will not be remembered.
+    }
+  }
+
+  const theme = isDark ? webDarkTheme : webLightTheme
+
   if (loading) {
     return (
-      <div className={styles.page}>
-        <Spinner label="Loading…" />
-      </div>
+      <FluentProvider theme={theme}>
+        <div className={styles.centre}>
+          <Spinner label="Starting ClearWise…" />
+        </div>
+      </FluentProvider>
     )
   }
 
   if (error) {
     return (
-      <div className={styles.page}>
-        <Title2>ClearWise</Title2>
-        <Body1 className={styles.error}>Could not reach the API: {error}</Body1>
-        <Caption1 className={styles.muted}>
-          Start it with: dotnet run --urls http://localhost:5100
-        </Caption1>
-      </div>
+      <FluentProvider theme={theme}>
+        <div className={styles.centre}>
+          <div>
+            <Title3>Cannot reach the API</Title3>
+            <Body1 style={{ display: 'block', marginTop: tokens.spacingVerticalM }}>{error}</Body1>
+            <Caption1 style={{ display: 'block', marginTop: tokens.spacingVerticalM }}>
+              Start the backend: dotnet run --urls http://localhost:5100
+            </Caption1>
+          </div>
+        </div>
+      </FluentProvider>
     )
   }
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <Title2>ClearWise</Title2>
-        <Caption1 className={styles.muted}>
-          Layer 0 — tenancy, entities and the chart of accounts. Nothing is posted yet.
-        </Caption1>
-      </div>
-
-      <section className={styles.section}>
-        <Subtitle1>Entities</Subtitle1>
-        <Caption1 className={styles.muted}>
-          Separate books, one tenant. Each keeps its own financial year and tax identity.
-        </Caption1>
-        <div className={styles.card}>
-          <Table size="small" aria-label="Entities">
-            <TableHeader>
-              <TableRow>
-                <TableHeaderCell>Code</TableHeaderCell>
-                <TableHeaderCell>Name</TableHeaderCell>
-                <TableHeaderCell>Currency</TableHeaderCell>
-                <TableHeaderCell>FY starts</TableHeaderCell>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {entities.map((entity) => (
-                <TableRow key={entity.id}>
-                  <TableCell>{entity.code}</TableCell>
-                  <TableCell>{entity.name}</TableCell>
-                  <TableCell>{entity.functionalCurrency}</TableCell>
-                  <TableCell>{monthName(entity.financialYearStartMonth)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </section>
-
-      <section className={styles.section}>
-        <Subtitle1>Chart of accounts</Subtitle1>
-        <Caption1 className={styles.muted}>
-          Shared across both entities, which is what makes consolidation a sum rather than a
-          mapping exercise. Only leaf accounts can be posted to.
-        </Caption1>
-        <div className={styles.card}>
-          <Table size="small" aria-label="Chart of accounts">
-            <TableHeader>
-              <TableRow>
-                <TableHeaderCell>Code</TableHeaderCell>
-                <TableHeaderCell>Name</TableHeaderCell>
-                <TableHeaderCell>Type</TableHeaderCell>
-                <TableHeaderCell>Normal balance</TableHeaderCell>
-                <TableHeaderCell>Control</TableHeaderCell>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {accounts.map((account) => (
-                <TableRow key={account.id}>
-                  <TableCell className={account.isPostable ? styles.indent : undefined}>
-                    {account.code}
-                  </TableCell>
-                  <TableCell className={account.isPostable ? undefined : styles.muted}>
-                    {account.name}
-                    {!account.isPostable && ' (heading)'}
-                  </TableCell>
-                  <TableCell>{account.accountType}</TableCell>
-                  <TableCell>{account.normalBalance}</TableCell>
-                  <TableCell>
-                    {account.controlType === 'None' ? (
-                      <span className={styles.muted}>—</span>
-                    ) : (
-                      <Badge appearance="tint" color="informative">
-                        {account.controlType}
-                      </Badge>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </section>
-    </div>
+    <FluentProvider theme={theme}>
+      <AppShell
+        entities={entities}
+        selectedEntityId={selectedEntityId}
+        onSelectEntity={setSelectedEntityId}
+        isDark={isDark}
+        onToggleTheme={handleToggleTheme}
+      >
+        <Routes>
+          <Route path="/" element={<Navigate to="/entities" replace />} />
+          <Route path="/entities" element={<EntitiesPage entities={entities} />} />
+          <Route path="/accounts" element={<ChartOfAccountsPage />} />
+          <Route
+            path="/journals"
+            element={
+              <PlaceholderPage title="Journals" layer="Layer 1">
+                The posting core: immutable journal entries and postings, with debits and
+                credits proven equal by the database at commit time. Corrections will appear
+                here as reversal and replacement pairs rather than edits.
+              </PlaceholderPage>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <PlaceholderPage title="Settings" layer="a later layer">
+                Number series, fiscal years and period closing, tax codes and user access.
+              </PlaceholderPage>
+            }
+          />
+        </Routes>
+      </AppShell>
+    </FluentProvider>
   )
-}
-
-function monthName(month: number): string {
-  return new Date(2000, month - 1, 1).toLocaleString('en-GB', { month: 'long' })
 }
 
 export default App
