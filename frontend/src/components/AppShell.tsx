@@ -23,6 +23,8 @@ import {
   BookOpenRegular,
   BuildingBankFilled,
   BuildingBankRegular,
+  DocumentBulletListFilled,
+  DocumentBulletListRegular,
   DocumentTableFilled,
   DocumentTableRegular,
   ScalesFilled,
@@ -42,6 +44,7 @@ const EntitiesIcon = bundleIcon(BuildingBankFilled, BuildingBankRegular)
 const AccountsIcon = bundleIcon(BookOpenFilled, BookOpenRegular)
 const JournalsIcon = bundleIcon(DocumentTableFilled, DocumentTableRegular)
 const ScalesIcon = bundleIcon(ScalesFilled, ScalesRegular)
+const InvoicesIcon = bundleIcon(DocumentBulletListFilled, DocumentBulletListRegular)
 const SettingsIcon = bundleIcon(SettingsFilled, SettingsRegular)
 
 const useStyles = makeStyles({
@@ -72,11 +75,18 @@ const useStyles = makeStyles({
   entityPicker: { minWidth: '280px' },
 })
 
-const NAV_ITEMS = [
-  { path: '/entities', label: 'Entities', icon: <EntitiesIcon /> },
-  { path: '/accounts', label: 'Chart of accounts', icon: <AccountsIcon /> },
+const SALES_ITEMS = [
+  { path: '/invoices', label: 'Invoices', icon: <InvoicesIcon /> },
+]
+
+const LEDGER_ITEMS = [
   { path: '/journals', label: 'Journals', icon: <JournalsIcon /> },
   { path: '/trial-balance', label: 'Trial balance', icon: <ScalesIcon /> },
+]
+
+const SETUP_ITEMS = [
+  { path: '/entities', label: 'Entities', icon: <EntitiesIcon /> },
+  { path: '/accounts', label: 'Chart of accounts', icon: <AccountsIcon /> },
 ]
 
 export interface AppShellProps {
@@ -127,14 +137,26 @@ export function AppShell({
             ClearWise
           </AppItem>
 
-          <NavSectionHeader>Accounting</NavSectionHeader>
-          {NAV_ITEMS.map((item) => (
+          <NavSectionHeader>Sales</NavSectionHeader>
+          {SALES_ITEMS.map((item) => (
             <NavItem key={item.path} icon={item.icon} value={item.path}>
               {item.label}
             </NavItem>
           ))}
 
-          <NavSectionHeader>Configuration</NavSectionHeader>
+          <NavSectionHeader>Ledger</NavSectionHeader>
+          {LEDGER_ITEMS.map((item) => (
+            <NavItem key={item.path} icon={item.icon} value={item.path}>
+              {item.label}
+            </NavItem>
+          ))}
+
+          <NavSectionHeader>Setup</NavSectionHeader>
+          {SETUP_ITEMS.map((item) => (
+            <NavItem key={item.path} icon={item.icon} value={item.path}>
+              {item.label}
+            </NavItem>
+          ))}
           <NavItem icon={<SettingsIcon />} value="/settings">
             Settings
           </NavItem>

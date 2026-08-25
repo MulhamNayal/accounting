@@ -1,4 +1,4 @@
-import { getJson } from './client'
+import { getJson, postJson } from './client'
 
 export interface JournalEntrySummary {
   id: string
@@ -76,33 +76,6 @@ export interface TrialBalance {
   isBalanced: boolean
 }
 
-/** The API returns a raw JSON string for 400/404/409, so the message is read directly. */
-async function send<T>(path: string, body: unknown): Promise<T> {
-  const response = await fetch(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify(body),
-  })
-
-  const text = await response.text()
-
-  if (!response.ok) {
-    let message = text
-    try {
-      const parsed: unknown = JSON.parse(text)
-      if (typeof parsed === 'string') message = parsed
-      else if (parsed && typeof parsed === 'object' && 'detail' in parsed) {
-        message = String((parsed as { detail: unknown }).detail)
-      }
-    } catch {
-      // Not JSON; the raw text is the best message available.
-    }
-    throw new Error(message || `${response.status} ${response.statusText}`)
-  }
-
-  return JSON.parse(text) as T
-}
-
 export function getJournalEntries(entityId: string): Promise<JournalEntrySummary[]> {
   return getJson<JournalEntrySummary[]>(`/api/journal-entries?entityId=${entityId}`)
 }
@@ -112,11 +85,11 @@ export function getJournalEntry(id: string): Promise<JournalEntryDetail> {
 }
 
 export function postJournalEntry(request: PostJournalEntryRequest): Promise<JournalEntryDetail> {
-  return send<JournalEntryDetail>('/api/journal-entries', request)
+  return postJson<JournalEntryDetail>('/api/journal-entries', request)
 }
 
 export function reverseJournalEntry(id: string, reasonCode: string): Promise<JournalEntryDetail> {
-  return send<JournalEntryDetail>(`/api/journal-entries/${id}/reverse`, { reasonCode })
+  return postJson<JournalEntryDetail>(`/api/journal-entries/${id}/reverse`, { reasonCode })
 }
 
 export function getTrialBalance(entityId: string): Promise<TrialBalance> {

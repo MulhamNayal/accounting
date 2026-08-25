@@ -17,6 +17,7 @@ import type { LegalEntitySummary } from './api/entities'
 import { AppShell } from './components/AppShell'
 import { ChartOfAccountsPage } from './pages/ChartOfAccountsPage'
 import { EntitiesPage } from './pages/EntitiesPage'
+import { InvoicesPage } from './pages/InvoicesPage'
 import { JournalsPage } from './pages/JournalsPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { TrialBalancePage } from './pages/TrialBalancePage'
@@ -108,9 +109,10 @@ function App() {
         onToggleTheme={handleToggleTheme}
       >
         <Routes>
-          <Route path="/" element={<Navigate to="/entities" replace />} />
+          <Route path="/" element={<Navigate to="/invoices" replace />} />
           <Route path="/entities" element={<EntitiesPage entities={entities} />} />
           <Route path="/accounts" element={<ChartOfAccountsPage />} />
+          <Route path="/invoices" element={<InvoicesPage entityId={selectedEntityId} />} />
           <Route path="/journals" element={<JournalsPage entityId={selectedEntityId} />} />
           <Route path="/trial-balance" element={<TrialBalancePage entityId={selectedEntityId} />} />
           <Route
