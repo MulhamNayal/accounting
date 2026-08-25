@@ -25,6 +25,11 @@ public record PostingLineRequest(
     Guid? ProjectId = null,
     Guid? AgentId = null,
     Guid? AreaId = null,
+    /// <summary>
+    /// Carried onto the posting so a tax return can be filed from the ledger rather than
+    /// from the documents, and so a superseded regime's history stays intact.
+    /// </summary>
+    Guid? TaxCodeId = null,
     string? Description = null);
 
 public record ReverseEntryRequest(string ReasonCode);

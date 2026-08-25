@@ -17,7 +17,9 @@ public record CreateSalesInvoiceLineRequest(
     decimal UnitPrice,
     Guid RevenueAccountId,
     Guid? ProjectId = null,
-    Guid? AgentId = null);
+    Guid? AgentId = null,
+    /// <summary>Null means outside the tax regime — not the same as zero-rated.</summary>
+    Guid? TaxCodeId = null);
 
 public record SalesInvoiceSummary(
     Guid Id,
@@ -26,7 +28,11 @@ public record SalesInvoiceSummary(
     DateOnly DueDate,
     string CustomerName,
     string CurrencyCode,
+    /// <summary>Net of tax.</summary>
     decimal Total,
+    decimal TaxTotal,
+    /// <summary>What the customer owes. This is the figure that matters for settlement.</summary>
+    decimal TotalWithTax,
     string State,
     Guid? JournalEntryId);
 
@@ -45,6 +51,8 @@ public record SalesInvoiceDetail(
     string State,
     Guid? JournalEntryId,
     decimal Total,
+    decimal TaxTotal,
+    decimal TotalWithTax,
     IReadOnlyList<SalesInvoiceLineDetail> Lines);
 
 public record SalesInvoiceLineDetail(
@@ -56,7 +64,11 @@ public record SalesInvoiceLineDetail(
     decimal LineTotal,
     Guid RevenueAccountId,
     string RevenueAccountCode,
-    string RevenueAccountName);
+    string RevenueAccountName,
+    Guid? TaxCodeId,
+    string? TaxCodeName,
+    decimal TaxRate,
+    decimal TaxAmount);
 
 /// <summary>Returned by <see cref="ICustomerService"/>. No balance — that comes from postings.</summary>
 public record CustomerSummary(

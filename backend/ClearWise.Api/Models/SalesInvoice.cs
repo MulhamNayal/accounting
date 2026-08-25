@@ -65,8 +65,14 @@ public class SalesInvoice
 
     public ICollection<SalesInvoiceLine> Lines { get; set; } = [];
 
-    /// <summary>Derived, never stored — a stored total is a total that can drift.</summary>
+    /// <summary>Net of tax. Derived, never stored — a stored total is one that can drift.</summary>
     public decimal Total => Lines.Sum(l => l.LineTotal);
+
+    /// <summary>Sum of the lines' tax, not a recomputation from the net total.</summary>
+    public decimal TaxTotal => Lines.Sum(l => l.TaxAmount);
+
+    /// <summary>What the customer actually owes.</summary>
+    public decimal TotalWithTax => Total + TaxTotal;
 }
 
 public class SalesInvoiceLine
@@ -94,5 +100,34 @@ public class SalesInvoiceLine
 
     public Guid? AgentId { get; set; }
 
+    /// <summary>
+    /// The tax treatment of this line. Null means no tax — which is different from a
+    /// zero-rated code, because a return has to distinguish "outside the regime" from
+    /// "inside it at 0%".
+    /// </summary>
+    public Guid? TaxCodeId { get; set; }
+    public TaxCode? TaxCode { get; set; }
+
+    /// <summary>
+    /// The rate applied, copied at posting time. Stored because a code's rate can be
+    /// retired and replaced, and this line must always reproduce the tax it actually
+    /// charged.
+    /// </summary>
+    public decimal TaxRate { get; set; }
+
+    /// <summary>Net of tax.</summary>
     public decimal LineTotal => decimal.Round(Quantity * UnitPrice, 4, MidpointRounding.ToEven);
+
+    /// <summary>
+    /// Tax on this line, rounded per line rather than per invoice.
+    /// </summary>
+    /// <remarks>
+    /// Per-line rounding is the common convention and keeps a line's tax reproducible on its
+    /// own. It means an invoice's tax may differ by a cent from rate × total; that is
+    /// expected and is why the tax posting sums the lines rather than recomputing.
+    /// </remarks>
+    public decimal TaxAmount =>
+        decimal.Round(LineTotal * TaxRate / 100m, 2, MidpointRounding.AwayFromZero);
+
+    public decimal LineTotalWithTax => LineTotal + TaxAmount;
 }

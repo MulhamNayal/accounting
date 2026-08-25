@@ -37,6 +37,88 @@ public static class DevDataSeeder
         await SeedNumberSeriesAsync(db, cancellationToken);
         await SeedCustomersAsync(db, cancellationToken);
         await BackfillSystemRolesAsync(db, cancellationToken);
+        await SeedTaxAsync(db, cancellationToken);
+    }
+
+    /// <summary>
+    /// Two Malaysian regimes — the historical GST and the current SST — so the
+    /// effective-dating actually has something to distinguish.
+    /// </summary>
+    /// <remarks>
+    /// GST ran from April 2015 to August 2018 and was input-reclaimable; SST replaced it and
+    /// is not. An invoice back-dated into 2017 must use GST codes and one dated now must not,
+    /// which is the behaviour worth being able to demonstrate.
+    /// </remarks>
+    private static async Task SeedTaxAsync(ClearWiseDbContext db, CancellationToken cancellationToken)
+    {
+        if (await db.TaxRegimes.AnyAsync(cancellationToken))
+        {
+            return;
+        }
+
+        var outputTax = await db.Accounts.FirstOrDefaultAsync(a => a.Code == "2020", cancellationToken);
+        var inputTax = await db.Accounts.FirstOrDefaultAsync(a => a.Code == "1240", cancellationToken);
+
+        if (outputTax is null)
+        {
+            return;
+        }
+
+        var gst = new TaxRegime
+        {
+            Id = Guid.NewGuid(),
+            TenantId = DemoTenantId,
+            Code = "MY-GST",
+            Name = "Malaysia Goods and Services Tax (historical)",
+            CountryCode = "MY",
+            InputReclaimable = true,
+            EffectiveFrom = new DateOnly(2015, 4, 1),
+            EffectiveTo = new DateOnly(2018, 8, 31),
+        };
+
+        var sst = new TaxRegime
+        {
+            Id = Guid.NewGuid(),
+            TenantId = DemoTenantId,
+            Code = "MY-SST",
+            Name = "Malaysia Sales and Service Tax",
+            CountryCode = "MY",
+            InputReclaimable = false,
+            EffectiveFrom = new DateOnly(2018, 9, 1),
+        };
+
+        db.TaxRegimes.AddRange(gst, sst);
+
+        (TaxRegime Regime, string Code, string Name, TaxKind Kind, decimal Rate, bool Input)[] codes =
+        [
+            (gst, "SR", "Standard rated", TaxKind.ValueAdded, 6m, true),
+            (gst, "ZRL", "Zero rated (local)", TaxKind.ZeroRated, 0m, true),
+            (gst, "ES", "Exempt supply", TaxKind.Exempt, 0m, false),
+            (sst, "SV", "Service tax", TaxKind.ServiceTax, 8m, false),
+            (sst, "SL", "Sales tax", TaxKind.SalesTax, 10m, false),
+            (sst, "NA", "Not taxable", TaxKind.OutOfScope, 0m, false),
+        ];
+
+        foreach (var (regime, code, name, kind, rate, reclaimable) in codes)
+        {
+            db.TaxCodes.Add(new TaxCode
+            {
+                Id = Guid.NewGuid(),
+                TenantId = DemoTenantId,
+                TaxRegimeId = regime.Id,
+                Code = code,
+                Name = name,
+                Kind = kind,
+                Rate = rate,
+                // A zero-rated code needs no account: there is nothing to post.
+                OutputAccountId = rate > 0 ? outputTax.Id : null,
+                InputAccountId = reclaimable ? inputTax?.Id : null,
+                EffectiveFrom = regime.EffectiveFrom,
+                EffectiveTo = regime.EffectiveTo,
+            });
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>

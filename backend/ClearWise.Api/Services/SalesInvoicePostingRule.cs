@@ -24,15 +24,25 @@ public interface IPostingRule<in TDocument>
     IReadOnlyList<PostingLineRequest> Build(TDocument document, PostingRuleContext context);
 }
 
-/// <summary>Which accounts a rule should reach for, resolved from the chart.</summary>
-public sealed record PostingRuleContext(Guid ReceivablesAccountId);
+/// <summary>
+/// Which accounts a rule should reach for, resolved from the chart before it runs.
+/// </summary>
+/// <param name="ReceivablesAccountId">The receivables control account.</param>
+/// <param name="OutputTaxAccountByTaxCode">
+/// Where each tax code's output tax is credited. Resolved per code rather than globally,
+/// because jurisdictions commonly separate standard-rated from other output accounts.
+/// </param>
+public sealed record PostingRuleContext(
+    Guid ReceivablesAccountId,
+    IReadOnlyDictionary<Guid, Guid>? OutputTaxAccountByTaxCode = null);
 
 public sealed class SalesInvoicePostingRule : IPostingRule<SalesInvoice>
 {
     public string DocumentType => "SalesInvoice";
 
     /// <summary>
-    /// Debit receivables for the invoice total, credit each line's revenue account.
+    /// Debit receivables for what the customer owes, credit each line's revenue account for
+    /// its net, and credit output tax for the tax charged.
     /// </summary>
     /// <remarks>
     /// The receivables line carries <c>CustomerId</c> — not optional. Receivables is a
@@ -44,6 +54,11 @@ public sealed class SalesInvoicePostingRule : IPostingRule<SalesInvoice>
     /// dimension on a line survives into the ledger and reporting by those axes derives
     /// from the same rows as the trial balance.
     /// </para>
+    /// <para>
+    /// Tax is grouped by code, not by line. A return is filed per code, so the ledger should
+    /// aggregate the same way — and the amount is the sum of the lines' already-rounded tax
+    /// rather than a fresh calculation, or the entry would fail to balance by a cent.
+    /// </para>
     /// </remarks>
     public IReadOnlyList<PostingLineRequest> Build(SalesInvoice invoice, PostingRuleContext context)
     {
@@ -52,21 +67,24 @@ public sealed class SalesInvoicePostingRule : IPostingRule<SalesInvoice>
             throw new PostingValidationException("An invoice needs at least one line.");
         }
 
-        var total = invoice.Lines.Sum(l => l.LineTotal);
+        var net = invoice.Lines.Sum(l => l.LineTotal);
 
-        if (total <= 0)
+        if (net <= 0)
         {
             throw new PostingValidationException(
-                $"The invoice total is {total}. An invoice for nothing, or for a negative "
+                $"The invoice total is {net}. An invoice for nothing, or for a negative "
                 + "amount, is a credit note - raise one of those instead.");
         }
 
+        var tax = invoice.Lines.Sum(l => l.TaxAmount);
+
         var lines = new List<PostingLineRequest>
         {
+            // What the customer owes is net plus tax, so that is what receivables carries.
             new(
                 context.ReceivablesAccountId,
                 nameof(PostingDirection.Debit),
-                total,
+                net + tax,
                 invoice.CurrencyCode,
                 invoice.FxRate,
                 CustomerId: invoice.CustomerId,
@@ -90,9 +108,40 @@ public sealed class SalesInvoicePostingRule : IPostingRule<SalesInvoice>
                 invoice.FxRate,
                 ProjectId: line.ProjectId,
                 AgentId: line.AgentId,
+                TaxCodeId: line.TaxCodeId,
                 Description: line.Description));
         }
 
+        lines.AddRange(BuildTaxLines(invoice, context));
+
         return lines;
+    }
+
+    private static IEnumerable<PostingLineRequest> BuildTaxLines(
+        SalesInvoice invoice, PostingRuleContext context)
+    {
+        var byCode = invoice.Lines
+            .Where(l => l.TaxCodeId is not null && l.TaxAmount != 0)
+            .GroupBy(l => l.TaxCodeId!.Value);
+
+        foreach (var group in byCode)
+        {
+            if (context.OutputTaxAccountByTaxCode is null
+                || !context.OutputTaxAccountByTaxCode.TryGetValue(group.Key, out var accountId))
+            {
+                throw new PostingValidationException(
+                    "A line charges tax but its tax code has no output tax account. "
+                    + "Set one on the code before invoicing with it.");
+            }
+
+            yield return new PostingLineRequest(
+                accountId,
+                nameof(PostingDirection.Credit),
+                group.Sum(l => l.TaxAmount),
+                invoice.CurrencyCode,
+                invoice.FxRate,
+                TaxCodeId: group.Key,
+                Description: "Output tax");
+        }
     }
 }

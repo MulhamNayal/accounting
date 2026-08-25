@@ -92,6 +92,8 @@ public sealed class SalesInvoiceService(
             CreatedByUserId = userId,
         };
 
+        var taxCodes = await ResolveTaxCodesAsync(request, invoice.DocDate, ct);
+
         var lineNo = 1;
         foreach (var line in request.Lines)
         {
@@ -114,6 +116,10 @@ public sealed class SalesInvoiceService(
                 RevenueAccountId = line.RevenueAccountId,
                 ProjectId = line.ProjectId,
                 AgentId = line.AgentId,
+                TaxCodeId = line.TaxCodeId,
+                // The rate is copied, not referenced. A code can be retired and replaced,
+                // and this line must always reproduce the tax it actually charged.
+                TaxRate = line.TaxCodeId is null ? 0m : taxCodes[line.TaxCodeId.Value].Rate,
             });
         }
 
@@ -161,7 +167,10 @@ public sealed class SalesInvoiceService(
                 "The chart of accounts has no active receivables control account, so an "
                 + "invoice has nowhere to debit.");
 
-        var lines = rule.Build(invoice, new PostingRuleContext(receivables.Id));
+        var outputTaxAccounts = await ResolveOutputTaxAccountsAsync(invoice, ct);
+
+        var lines = rule.Build(
+            invoice, new PostingRuleContext(receivables.Id, outputTaxAccounts));
 
         // Held in a local rather than assigned straight to the entity. PostAsync saves
         // changes of its own, which would flush this invoice mid-flight — a Draft row
@@ -199,6 +208,7 @@ public sealed class SalesInvoiceService(
         var invoice = await db.SalesInvoices
             .AsNoTracking()
             .Include(i => i.Lines).ThenInclude(l => l.RevenueAccount)
+            .Include(i => i.Lines).ThenInclude(l => l.TaxCode)
             .Include(i => i.Customer)
             .FirstOrDefaultAsync(i => i.Id == invoiceId, ct)
             ?? throw new NotFoundException($"No sales invoice with id {invoiceId}.");
@@ -218,6 +228,8 @@ public sealed class SalesInvoiceService(
             invoice.State.ToString(),
             invoice.JournalEntryId,
             invoice.Total,
+            invoice.TaxTotal,
+            invoice.TotalWithTax,
             invoice.Lines.OrderBy(l => l.LineNo).Select(l => new SalesInvoiceLineDetail(
                 l.Id,
                 l.LineNo,
@@ -227,16 +239,29 @@ public sealed class SalesInvoiceService(
                 l.LineTotal,
                 l.RevenueAccountId,
                 l.RevenueAccount!.Code,
-                l.RevenueAccount.Name)).ToList());
+                l.RevenueAccount.Name,
+                l.TaxCodeId,
+                l.TaxCode is null ? null : $"{l.TaxCode.Code} — {l.TaxCode.Name}",
+                l.TaxRate,
+                l.TaxAmount)).ToList());
     }
 
     public async Task<IReadOnlyList<SalesInvoiceSummary>> ListAsync(
         Guid legalEntityId, CancellationToken ct = default)
-        => await db.SalesInvoices
+    {
+        // Tax is rounded per line, so the totals are summed from the lines rather than
+        // recomputed from the net — projecting the raw columns and finishing in memory keeps
+        // that arithmetic in one place (the model) instead of duplicating it in SQL.
+        var invoices = await db.SalesInvoices
             .AsNoTracking()
+            .Include(i => i.Lines)
+            .Include(i => i.Customer)
             .Where(i => i.LegalEntityId == legalEntityId)
             .OrderByDescending(i => i.DocDate)
             .ThenByDescending(i => i.CreatedAtUtc)
+            .ToListAsync(ct);
+
+        return invoices
             .Select(i => new SalesInvoiceSummary(
                 i.Id,
                 i.DocNo,
@@ -244,8 +269,87 @@ public sealed class SalesInvoiceService(
                 i.DueDate,
                 i.Customer!.Name,
                 i.CurrencyCode,
-                i.Lines.Sum(l => l.Quantity * l.UnitPrice),
+                i.Total,
+                i.TaxTotal,
+                i.TotalWithTax,
                 i.State.ToString(),
                 i.JournalEntryId))
-            .ToListAsync(ct);
+            .ToList();
+    }
+
+    /// <summary>
+    /// Loads and validates the tax codes a request refers to, as at the document's date.
+    /// </summary>
+    /// <remarks>
+    /// Effective-dated on the <em>document</em> date, not today. Back-dating an invoice into
+    /// a period when a different regime was in force must use that regime's codes, which is
+    /// how Malaysia's GST-to-SST transition survives without restating history.
+    /// </remarks>
+    private async Task<Dictionary<Guid, TaxCode>> ResolveTaxCodesAsync(
+        CreateSalesInvoiceRequest request, DateOnly docDate, CancellationToken ct)
+    {
+        var ids = request.Lines
+            .Where(l => l.TaxCodeId is not null)
+            .Select(l => l.TaxCodeId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        var codes = await db.TaxCodes
+            .Where(c => ids.Contains(c.Id))
+            .ToDictionaryAsync(c => c.Id, ct);
+
+        foreach (var id in ids)
+        {
+            if (!codes.TryGetValue(id, out var code))
+            {
+                throw new NotFoundException($"No tax code with id {id}.");
+            }
+
+            if (!code.AppliesOn(docDate))
+            {
+                throw new PostingValidationException(
+                    $"Tax code {code.Code} ({code.Name}) does not apply on "
+                    + $"{docDate:yyyy-MM-dd}. Use a code that was in force on that date.");
+            }
+        }
+
+        return codes;
+    }
+
+    private async Task<Dictionary<Guid, Guid>> ResolveOutputTaxAccountsAsync(
+        SalesInvoice invoice, CancellationToken ct)
+    {
+        var ids = invoice.Lines
+            .Where(l => l.TaxCodeId is not null && l.TaxAmount != 0)
+            .Select(l => l.TaxCodeId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        var codes = await db.TaxCodes.Where(c => ids.Contains(c.Id)).ToListAsync(ct);
+        var map = new Dictionary<Guid, Guid>();
+
+        foreach (var code in codes)
+        {
+            if (code.OutputAccountId is null)
+            {
+                throw new PostingValidationException(
+                    $"Tax code {code.Code} charges {code.Rate}% but has no output tax "
+                    + "account. Set one on the code before invoicing with it.");
+            }
+
+            map[code.Id] = code.OutputAccountId.Value;
+        }
+
+        return map;
+    }
 }

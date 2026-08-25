@@ -380,31 +380,34 @@ public sealed class ReceivablesService(
     public async Task<IReadOnlyList<OpenInvoice>> GetOpenInvoicesAsync(
         Guid legalEntityId, Guid? customerId, CancellationToken ct = default)
     {
-        var rows = await db.SalesInvoices
+        // Lines are loaded rather than aggregated in SQL because tax rounds per line, and
+        // that arithmetic should exist in exactly one place.
+        var invoices = await db.SalesInvoices
             .AsNoTracking()
+            .Include(i => i.Lines)
             .Where(i => i.LegalEntityId == legalEntityId && i.State == DocumentState.Posted)
             .Where(i => customerId == null || i.CustomerId == customerId)
-            .Select(i => new
-            {
-                i.Id,
-                i.DocNo,
-                i.DocDate,
-                i.DueDate,
-                i.CurrencyCode,
-                Total = i.Lines.Sum(l => l.Quantity * l.UnitPrice),
-                Allocated = db.Allocations
-                    .Where(a => a.SalesInvoiceId == i.Id)
-                    .Sum(a => (decimal?)a.Amount) ?? 0m,
-            })
             .ToListAsync(ct);
+
+        var allocationsByInvoice = await db.Allocations
+            .AsNoTracking()
+            .Where(a => a.LegalEntityId == legalEntityId)
+            .GroupBy(a => a.SalesInvoiceId)
+            .Select(g => new { InvoiceId = g.Key, Allocated = g.Sum(a => a.Amount) })
+            .ToDictionaryAsync(x => x.InvoiceId, x => x.Allocated, ct);
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        return rows
-            .Select(r => new OpenInvoice(
-                r.Id, r.DocNo, r.DocDate, r.DueDate, r.CurrencyCode,
-                r.Total, r.Allocated, r.Total - r.Allocated,
-                Math.Max(0, today.DayNumber - r.DueDate.DayNumber)))
+        return invoices
+            .Select(i =>
+            {
+                var allocated = allocationsByInvoice.GetValueOrDefault(i.Id, 0m);
+                var gross = i.TotalWithTax;
+                return new OpenInvoice(
+                    i.Id, i.DocNo, i.DocDate, i.DueDate, i.CurrencyCode,
+                    gross, allocated, gross - allocated,
+                    Math.Max(0, today.DayNumber - i.DueDate.DayNumber));
+            })
             .Where(i => i.Outstanding > 0)
             .OrderBy(i => i.DueDate)
             .ToList();
@@ -514,17 +517,31 @@ public sealed class ReceivablesService(
             .Where(a => a.CustomerReceiptId == receiptId)
             .SumAsync(a => (decimal?)a.Amount, ct) ?? 0m;
 
+    /// <summary>
+    /// What is still owed on an invoice: gross of tax, less what has been applied.
+    /// </summary>
+    /// <remarks>
+    /// Gross, because tax is part of what the customer pays. Netting against the tax-exclusive
+    /// total would leave every fully-settled invoice looking short by its tax.
+    /// <para>
+    /// The lines are materialised rather than summed in SQL because tax is rounded per line;
+    /// keeping that arithmetic in the model avoids a second, subtly different implementation.
+    /// </para>
+    /// </remarks>
     private async Task<decimal> OutstandingOnInvoiceAsync(SalesInvoice invoice, CancellationToken ct)
     {
-        var total = await db.SalesInvoiceLines
+        var lines = await db.SalesInvoiceLines
+            .AsNoTracking()
             .Where(l => l.SalesInvoiceId == invoice.Id)
-            .SumAsync(l => (decimal?)(l.Quantity * l.UnitPrice), ct) ?? 0m;
+            .ToListAsync(ct);
+
+        var gross = lines.Sum(l => l.LineTotalWithTax);
 
         var allocated = await db.Allocations
             .Where(a => a.SalesInvoiceId == invoice.Id)
             .SumAsync(a => (decimal?)a.Amount, ct) ?? 0m;
 
-        return total - allocated;
+        return gross - allocated;
     }
 
     /// <summary>

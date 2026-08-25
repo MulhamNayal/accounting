@@ -394,6 +394,7 @@ public sealed class PostingService(
                 ProjectId = line.ProjectId,
                 AgentId = line.AgentId,
                 AreaId = line.AreaId,
+                TaxCodeId = line.TaxCodeId,
                 Description = line.Description,
             });
         }

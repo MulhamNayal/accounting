@@ -22,6 +22,8 @@ public class ClearWiseDbContext(DbContextOptions<ClearWiseDbContext> options) : 
     public DbSet<SalesInvoiceLine> SalesInvoiceLines => Set<SalesInvoiceLine>();
     public DbSet<CustomerReceipt> CustomerReceipts => Set<CustomerReceipt>();
     public DbSet<Allocation> Allocations => Set<Allocation>();
+    public DbSet<TaxRegime> TaxRegimes => Set<TaxRegime>();
+    public DbSet<TaxCode> TaxCodes => Set<TaxCode>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -128,6 +130,64 @@ public class ClearWiseDbContext(DbContextOptions<ClearWiseDbContext> options) : 
         ConfigureNumbering(builder);
         ConfigureSales(builder);
         ConfigureReceivables(builder);
+        ConfigureTax(builder);
+    }
+
+    private static void ConfigureTax(ModelBuilder builder)
+    {
+        builder.Entity<TaxRegime>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Name).HasMaxLength(120).IsRequired();
+            e.Property(x => x.CountryCode).HasMaxLength(2).IsFixedLength().IsRequired();
+
+            e.HasIndex(x => new { x.TenantId, x.Code }).IsUnique();
+
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_tax_regime_dates", "effective_to IS NULL OR effective_to >= effective_from"));
+        });
+
+        builder.Entity<TaxCode>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Name).HasMaxLength(120).IsRequired();
+            e.Property(x => x.Kind).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Rate).HasPrecision(9, 4);
+
+            e.HasIndex(x => new { x.TaxRegimeId, x.Code }).IsUnique();
+
+            e.HasOne(x => x.TaxRegime).WithMany(r => r.Codes)
+                .HasForeignKey(x => x.TaxRegimeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.OutputAccount).WithMany()
+                .HasForeignKey(x => x.OutputAccountId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.InputAccount).WithMany()
+                .HasForeignKey(x => x.InputAccountId).OnDelete(DeleteBehavior.Restrict);
+
+            e.ToTable(t => t.HasCheckConstraint("ck_tax_code_rate", "rate >= 0 AND rate <= 100"));
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_tax_code_dates", "effective_to IS NULL OR effective_to >= effective_from"));
+
+            // A code that charges tax must say where it goes. A zero-rated or exempt code
+            // needs no account, which is why this is conditional rather than NOT NULL.
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_tax_code_has_output_account",
+                "rate = 0 OR output_account_id IS NOT NULL"));
+        });
+
+        builder.Entity<SalesInvoiceLine>(e =>
+        {
+            e.Property(x => x.TaxRate).HasPrecision(9, 4);
+            e.HasOne(x => x.TaxCode).WithMany()
+                .HasForeignKey(x => x.TaxCodeId).OnDelete(DeleteBehavior.Restrict);
+            e.Ignore(x => x.TaxAmount);
+            e.Ignore(x => x.LineTotalWithTax);
+
+            // A line with no code charges no tax; a line with a code carries whatever rate
+            // was in force. Mismatching the two makes the stored rate meaningless.
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_invoice_line_tax_rate_matches_code",
+                "(tax_code_id IS NULL AND tax_rate = 0) OR tax_code_id IS NOT NULL"));
+        });
     }
 
     private static void ConfigureReceivables(ModelBuilder builder)
@@ -242,6 +302,8 @@ public class ClearWiseDbContext(DbContextOptions<ClearWiseDbContext> options) : 
                 .HasForeignKey(x => x.JournalEntryId).OnDelete(DeleteBehavior.Restrict);
 
             e.Ignore(x => x.Total);
+            e.Ignore(x => x.TaxTotal);
+            e.Ignore(x => x.TotalWithTax);
 
             e.ToTable(t => t.HasCheckConstraint(
                 "ck_sales_invoice_due_after_doc", "due_date >= doc_date"));
