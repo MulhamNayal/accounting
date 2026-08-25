@@ -3,73 +3,138 @@
 Open-source double-entry accounting, inventory and compliance platform for small and
 medium businesses.
 
-> **Status: pre-alpha.** Nothing is built yet. This repository currently holds scope
-> decisions only. Do not treat anything here as working software.
+> **Status: pre-alpha, and honest about it.** Layers 0–6 of eight are built and tested, and
+> the whole stack runs. Nobody's real books belong in it yet: there is no migration importer,
+> no purchase or payables side, and no period-close mechanics. Treat it as a working
+> foundation, not a product.
 
-## Why
+## Why this exists
 
-Small businesses in Malaysia and Singapore run on desktop accounting software that is
-fast and locally compliant but single-machine, hard to integrate with, and rigid about
-reporting. ClearWise aims at the same job — books that balance, stock that reconciles,
-statutory filings that submit — as a web-first system.
+The accounting software small businesses actually run is fast, locally compliant, and
+single-machine. It is also, almost universally, built so that a posted transaction can be
+edited in place — with a change log written by the application, if the application chooses to.
+
+That last clause is the whole point. An audit trail the storage layer does not enforce records
+what a cooperating program decided to record. Examining a production company file from a
+widely-used desktop system showed exactly this: documents updated in place, cancellation as a
+boolean flag, deletion possible, and every trace of it written by the application. The
+database itself had no triggers and its factory-default password still worked.
+
+ClearWise's differentiator is not features — incumbents have more. It is that **the books
+cannot be altered without evidence, and that is enforced below the application.**
+
+## What that means concretely
+
+Every one of these is enforced by PostgreSQL, not by application discipline:
+
+- **`UPDATE` and `DELETE` are revoked** from the application's database role on journal
+  entries, postings, allocations, stock movements and cost history. The application can
+  append and read. It has no means to alter a posted row — not by bug, not by malice, not by
+  a support engineer in a hurry.
+- **Every entry balances**, checked by a deferred constraint trigger at commit. "The ledger
+  is provably balanced" is a constraint here, not an aspiration.
+- **Corrections are new entries** linked backwards to what they correct. There is no
+  `UpdatedAt`, no `UpdateCount`, no `IsCancelled` on any ledger table — their absence is the
+  design.
+- **Tenant isolation is row level security**, so a forgotten `WHERE` clause cannot leak
+  another company's books. The tenant comes from a signed token claim, never from request
+  input.
+- **A posting to a control account must carry its dimension** — receivables needs a customer,
+  stock needs an item — so a subledger can never quietly drift from its control account.
+
+The limit worth stating plainly: this stops the *application*. Someone with the database
+owner's credentials can still act. That is true of every system; it means the guarantee is
+"the app cannot alter the books", not "nobody can".
+
+## Built so far
+
+| Layer | | |
+|---|---|---|
+| 0 | Tenancy, entities, chart of accounts, periods | ✅ |
+| 1 | Immutable posting core, corrections, multi-currency | ✅ |
+| 2 | Number series, documents, posting rules, sales invoices | ✅ |
+| 3 | Receivables, allocation, realised FX, ageing | ✅ |
+| 4 | Tax as a jurisdiction abstraction | ✅ |
+| 5 | Stock with FIFO cost layers and the correction cascade | ✅ |
+| 6 | Consolidation, eliminations, currency translation | ✅ |
+| 7 | Migration importer | ⬜ |
+
+Plus authentication, and a React front end covering invoices, receipts, ageing, stock,
+journals, the trial balance and the chart of accounts.
+
+**Not built:** the migration importer, purchases and payables, period close and year-end,
+e-Invoice submission, and a UI for consolidation. `docs/superpowers/specs/` has the design;
+`docs/research/` has what the incumbent-system examination found.
 
 ## Scope
 
-The core, in rough dependency order:
+- **General ledger** — chart of accounts, journals, immutable postings, dimensions
+- **Receivables** — customers, invoices, receipts, allocation, ageing, statements
+- **Inventory** — FIFO cost layers, issues costed from the layers actually consumed, and
+  retroactive cost corrections that adjust inventory and cost of sales without rewriting
+  history
+- **Tax** — effective-dated regimes and codes, so a jurisdiction is added rather than coded
+  around, and a superseded regime's history is never restated
+- **Group reporting** — intercompany elimination and IAS 21 translation into a presentation
+  currency
+- **Migration** — an importer so a business can leave its existing system with its history
+  intact. Not built yet, and it is the commercially decisive piece: correct books alone do
+  not make anyone switch.
 
-- **General ledger** — chart of accounts, journals, period closing, immutable audit trail
-- **AR / AP** — customers, suppliers, ageing, payment allocation and knock-off
-- **Sales & purchase cycles** — quotation → order → delivery → invoice → credit note,
-  including partial fulfilment and cancellation
-- **Inventory** — multi-UOM, batch and serial tracking, FIFO / weighted-average costing,
-  stock take, multi-location
-- **Tax & compliance** — SST, withholding tax, and e-Invoice submission with validation
-  status tracking
-- **Reporting** — trial balance, P&L, balance sheet, stock cards, statutory formats
-- **Migration** — an importer so a business can move off its existing system with its
-  history intact
+## International by construction
 
-Migration is treated as a first-class feature, not an afterthought: without it, correct
-books are not enough to make anyone switch.
+Multi-currency is not a later addition. Every posting stores its transaction amount, the
+functional amount, and the rate used. Entities keep their own functional currency and their
+own financial year, and consolidate into a presentation currency. Accounts are found by role,
+never by code, because a chart's numbering belongs to its owner.
 
-## Non-negotiables
+The immutability and gap-free numbering are advantages abroad rather than local quirks —
+France, Germany, Italy and Portugal all mandate tamper-evident books, and several require
+dense document sequences.
 
-These are the properties that make an accounting system trustworthy, and they are
-easier to design in than to retrofit:
-
-- The ledger is **provably balanced** at all times, including after edits and
-  back-dated entries.
-- Posted documents are **immutable**; corrections are reversing entries, never
-  in-place edits.
-- Inventory cost is **recomputable** — changing a historical purchase price correctly
-  cascades.
-- Document numbering is **gap-free and unique** under concurrency.
-- Every mutation is **attributable** to a user, a time, and a reason.
-
-## Provenance
-
-ClearWise is a clean-room implementation. It is designed by studying commercial
-accounting software as a user and from public documentation. No source code, database
-schema, or proprietary API contract from any commercial or internally-licensed system
-is copied into this repository. The migration importer works from data the customer
-owns and exports.
+What remains jurisdiction-shaped is tax detail (VAT input reclaim, partial exemption, reverse
+charge) and e-invoice adapters. Both are extension points on the existing abstractions rather
+than rewrites.
 
 ## Stack
 
-Backend and database are intended, not yet committed: ASP.NET Core / C# and SQL Server,
-chosen for continuity with existing work rather than because the domain demands it.
-Revisit before the first line of the ledger is written.
+ASP.NET Core / C# on .NET 10, React + TypeScript with Fluent UI React, PostgreSQL.
 
-The frontend is decided: **React + TypeScript with Fluent UI React**
-(`@fluentui/react-components`), Microsoft's official implementation of the Fluent 2
-design language. ClearWise should look and feel like a Windows 11 application, because
-the people it is for spend their working day in Windows desktop accounting software and
-Office. Familiarity is a feature, not a vanity choice.
+`Controllers → Services → DbContext → PostgreSQL`. No repository layer. Two database roles:
+one owns the schema and runs migrations, one runs the application and deliberately cannot
+alter the ledger.
 
-Deliberately web rather than native WinUI 3: a single-machine, Windows-only application
-would reproduce the exact limitation this project exists to remove. A desktop shell
-(WebView2 or Tauri) over the same codebase remains open if offline operation turns out
-to be a hard requirement.
+## Running it
+
+Requires .NET 10 SDK, Node, and PostgreSQL.
+
+```bash
+# databases and roles: see backend/CLAUDE.md
+cd backend/ClearWise.Api
+dotnet user-secrets set "ConnectionStrings:ClearWiseDatabase" "Host=localhost;Database=clearwise_dev;Username=clearwise_app;Password=..."
+dotnet user-secrets set "ConnectionStrings:MigrationDatabase" "Host=localhost;Database=clearwise_dev;Username=clearwise_owner;Password=..."
+dotnet user-secrets set "Jwt:SigningKey" "<at least 32 bytes of random>"
+
+dotnet ef database update --project backend/ClearWise.Api/ClearWise.Api.csproj
+dotnet run --urls http://localhost:5100          # API
+cd frontend && npm install && npm run dev        # :5173
+
+dotnet test ClearWise.slnx                       # needs a local PostgreSQL
+```
+
+Development seeds a demo tenant with two entities, a chart of accounts, tax regimes and a
+sign-in of `demo@clearwise.test` / `clearwise-demo`.
+
+Tests run against a real PostgreSQL, never an in-memory provider — row level security,
+deferred triggers and revoked privileges are the things under test, and no in-memory provider
+implements any of them.
+
+## Provenance
+
+ClearWise is a clean-room implementation, designed by studying commercial accounting software
+as a user and from public documentation. No source code, database schema, or proprietary API
+contract from any commercial or internally-licensed system is copied into this repository.
+The migration importer, when built, will work from data the customer owns and exports.
 
 ## Licence
 
