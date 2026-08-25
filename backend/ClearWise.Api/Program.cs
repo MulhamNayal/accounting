@@ -27,6 +27,7 @@ builder.Services.AddScoped<IPostingService, PostingService>();
 builder.Services.AddScoped<ISalesInvoiceService, SalesInvoiceService>();
 builder.Services.AddScoped<IReceivablesService, ReceivablesService>();
 builder.Services.AddScoped<ITaxService, TaxService>();
+builder.Services.AddScoped<IStockService, StockService>();
 
 // Posting rules are stateless pure functions from document to posting set.
 builder.Services.AddSingleton<SalesInvoicePostingRule>();

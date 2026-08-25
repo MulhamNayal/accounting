@@ -24,6 +24,10 @@ public class ClearWiseDbContext(DbContextOptions<ClearWiseDbContext> options) : 
     public DbSet<Allocation> Allocations => Set<Allocation>();
     public DbSet<TaxRegime> TaxRegimes => Set<TaxRegime>();
     public DbSet<TaxCode> TaxCodes => Set<TaxCode>();
+    public DbSet<Item> Items => Set<Item>();
+    public DbSet<StockMove> StockMoves => Set<StockMove>();
+    public DbSet<CostLayer> CostLayers => Set<CostLayer>();
+    public DbSet<CostConsumption> CostConsumptions => Set<CostConsumption>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -131,6 +135,88 @@ public class ClearWiseDbContext(DbContextOptions<ClearWiseDbContext> options) : 
         ConfigureSales(builder);
         ConfigureReceivables(builder);
         ConfigureTax(builder);
+        ConfigureStock(builder);
+    }
+
+    private static void ConfigureStock(ModelBuilder builder)
+    {
+        builder.Entity<StockMove>().Property(m => m.Direction).HasConversion<string>().HasMaxLength(10);
+
+        builder.Entity<Item>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(40).IsRequired();
+            e.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(500);
+            e.Property(x => x.BaseUom).HasMaxLength(20).IsRequired();
+
+            e.HasIndex(x => new { x.TenantId, x.Code }).IsUnique();
+
+            e.HasOne(x => x.InventoryAccount).WithMany()
+                .HasForeignKey(x => x.InventoryAccountId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.CostOfSalesAccount).WithMany()
+                .HasForeignKey(x => x.CostOfSalesAccountId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<StockMove>(e =>
+        {
+            e.Property(x => x.Quantity).HasPrecision(19, 4);
+            e.Property(x => x.SourceDocumentType).HasMaxLength(60).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(500);
+
+            e.HasIndex(x => new { x.LegalEntityId, x.ItemId, x.MovedOn });
+
+            e.HasOne(x => x.Item).WithMany()
+                .HasForeignKey(x => x.ItemId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.JournalEntry).WithMany()
+                .HasForeignKey(x => x.JournalEntryId).OnDelete(DeleteBehavior.Restrict);
+
+            // Direction carries the sign, never the quantity. A negative quantity would make
+            // every on-hand sum ambiguous.
+            e.ToTable(t => t.HasCheckConstraint("ck_stock_move_quantity", "quantity > 0"));
+        });
+
+        builder.Entity<CostLayer>(e =>
+        {
+            e.Property(x => x.QuantityReceived).HasPrecision(19, 4);
+            e.Property(x => x.UnitCost).HasPrecision(19, 4);
+
+            // Consumption walks this in order, so it must be unique per item.
+            e.HasIndex(x => new { x.ItemId, x.Sequence }).IsUnique();
+            e.HasIndex(x => new { x.LegalEntityId, x.ItemId });
+
+            e.HasOne(x => x.Item).WithMany()
+                .HasForeignKey(x => x.ItemId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.SourceMove).WithMany()
+                .HasForeignKey(x => x.SourceMoveId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.AdjustsLayer).WithMany()
+                .HasForeignKey(x => x.AdjustsLayerId).OnDelete(DeleteBehavior.Restrict);
+
+            e.ToTable(t => t.HasCheckConstraint("ck_cost_layer_cost", "unit_cost > 0"));
+
+            // A receipt brings quantity; an adjustment revises cost and brings none. Anything
+            // else would either invent stock or create a layer nothing can consume.
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_cost_layer_quantity_matches_kind",
+                "(adjusts_layer_id IS NULL AND quantity_received > 0) "
+                + "OR (adjusts_layer_id IS NOT NULL AND quantity_received = 0)"));
+        });
+
+        builder.Entity<CostConsumption>(e =>
+        {
+            e.Property(x => x.Quantity).HasPrecision(19, 4);
+            e.Property(x => x.UnitCost).HasPrecision(19, 4);
+            e.Property(x => x.Amount).HasPrecision(19, 4);
+
+            e.HasIndex(x => x.CostLayerId);
+            e.HasIndex(x => x.OutMoveId);
+
+            e.HasOne(x => x.CostLayer).WithMany(l => l.Consumptions)
+                .HasForeignKey(x => x.CostLayerId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.OutMove).WithMany()
+                .HasForeignKey(x => x.OutMoveId).OnDelete(DeleteBehavior.Restrict);
+
+            e.ToTable(t => t.HasCheckConstraint("ck_cost_consumption_quantity", "quantity > 0"));
+        });
     }
 
     private static void ConfigureTax(ModelBuilder builder)
