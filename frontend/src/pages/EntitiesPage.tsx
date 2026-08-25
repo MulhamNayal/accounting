@@ -1,6 +1,7 @@
 import {
   Badge,
   Caption1,
+  Card,
   DataGrid,
   DataGridBody,
   DataGridCell,
@@ -85,7 +86,7 @@ export function EntitiesPage({ entities }: { entities: LegalEntitySummary[] }) {
         </Caption1>
       </div>
 
-      <div className={layout.surface}>
+      <Card>
         <DataGrid
           items={entities}
           columns={columns}
@@ -106,7 +107,7 @@ export function EntitiesPage({ entities }: { entities: LegalEntitySummary[] }) {
             )}
           </DataGridBody>
         </DataGrid>
-      </div>
+      </Card>
     </div>
   )
 }

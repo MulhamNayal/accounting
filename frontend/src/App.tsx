@@ -1,9 +1,10 @@
 import {
-  Body1,
   Caption1,
   FluentProvider,
+  MessageBar,
+  MessageBarBody,
+  MessageBarTitle,
   Spinner,
-  Title3,
   makeStyles,
   tokens,
   webDarkTheme,
@@ -81,13 +82,15 @@ function App() {
     return (
       <FluentProvider theme={theme}>
         <div className={styles.centre}>
-          <div>
-            <Title3>Cannot reach the API</Title3>
-            <Body1 style={{ display: 'block', marginTop: tokens.spacingVerticalM }}>{error}</Body1>
-            <Caption1 style={{ display: 'block', marginTop: tokens.spacingVerticalM }}>
-              Start the backend: dotnet run --urls http://localhost:5100
-            </Caption1>
-          </div>
+          <MessageBar intent="error" style={{ maxWidth: '560px' }}>
+            <MessageBarBody>
+              <MessageBarTitle>Cannot reach the API</MessageBarTitle>
+              {error}
+              <div style={{ marginTop: tokens.spacingVerticalS }}>
+                <Caption1>Start the backend: dotnet run --urls http://localhost:5100</Caption1>
+              </div>
+            </MessageBarBody>
+          </MessageBar>
         </div>
       </FluentProvider>
     )

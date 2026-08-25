@@ -1,4 +1,11 @@
-import { Body1, Caption1, Title3, tokens } from '@fluentui/react-components'
+import {
+  Body1,
+  MessageBar,
+  MessageBarBody,
+  MessageBarTitle,
+  Title3,
+} from '@fluentui/react-components'
+import type { ReactNode } from 'react'
 import { useLayoutStyles } from '../theme'
 
 /**
@@ -8,7 +15,7 @@ import { useLayoutStyles } from '../theme'
 export function PlaceholderPage({ title, layer, children }: {
   title: string
   layer: string
-  children: React.ReactNode
+  children: ReactNode
 }) {
   const layout = useLayoutStyles()
 
@@ -16,10 +23,15 @@ export function PlaceholderPage({ title, layer, children }: {
     <div className={layout.page}>
       <div className={layout.pageHeader}>
         <Title3>{title}</Title3>
-        <Caption1 style={{ color: tokens.colorPaletteMarigoldForeground1 }}>
-          Not built yet — arrives in {layer}.
-        </Caption1>
       </div>
+
+      <MessageBar intent="warning">
+        <MessageBarBody>
+          <MessageBarTitle>Not built yet</MessageBarTitle>
+          Arrives in {layer}.
+        </MessageBarBody>
+      </MessageBar>
+
       <Body1 className={layout.subtle}>{children}</Body1>
     </div>
   )

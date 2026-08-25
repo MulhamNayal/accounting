@@ -1,18 +1,22 @@
 import {
   Badge,
-  Body1,
   Caption1,
-  Input,
+  Card,
+  MessageBar,
+  MessageBarBody,
+  MessageBarTitle,
+  SearchBox,
   Spinner,
   Switch,
   Title3,
+  Toolbar,
+  ToolbarDivider,
   Tree,
   TreeItem,
   TreeItemLayout,
   makeStyles,
   tokens,
 } from '@fluentui/react-components'
-import { SearchRegular } from '@fluentui/react-icons'
 import { useEffect, useMemo, useState } from 'react'
 import { getAccounts } from '../api/accounts'
 import type { AccountSummary } from '../api/accounts'
@@ -26,11 +30,15 @@ const useStyles = makeStyles({
     minWidth: '52px',
     display: 'inline-block',
   },
-  row: { display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS, width: '100%' },
+  row: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalS,
+    width: '100%',
+  },
   heading: { fontWeight: tokens.fontWeightSemibold },
   grow: { flexGrow: 1 },
-  treeSurface: { padding: tokens.spacingVerticalM },
-  legend: { display: 'flex', gap: tokens.spacingHorizontalS, flexWrap: 'wrap' },
+  legend: { display: 'flex', gap: tokens.spacingHorizontalXS, flexWrap: 'wrap' },
 })
 
 interface AccountNode extends AccountSummary {
@@ -46,11 +54,8 @@ function buildTree(accounts: AccountSummary[]): AccountNode[] {
 
   for (const node of byId.values()) {
     const parent = node.parentId ? byId.get(node.parentId) : undefined
-    if (parent) {
-      parent.children.push(node)
-    } else {
-      roots.push(node)
-    }
+    if (parent) parent.children.push(node)
+    else roots.push(node)
   }
 
   const sortByCode = (nodes: AccountNode[]) => {
@@ -90,7 +95,7 @@ export function ChartOfAccountsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
-  const [showControlsOnly, setShowControlsOnly] = useState(false)
+  const [controlsOnly, setControlsOnly] = useState(false)
 
   useEffect(() => {
     getAccounts()
@@ -100,20 +105,32 @@ export function ChartOfAccountsPage() {
   }, [])
 
   const visible = useMemo(() => {
-    const source = showControlsOnly
+    const source = controlsOnly
       ? accounts.filter((a) => a.controlType !== 'None' || !a.isPostable)
       : accounts
     return filterTree(buildTree(source), search)
-  }, [accounts, search, showControlsOnly])
+  }, [accounts, search, controlsOnly])
 
   const openItems = useMemo(() => collectBranchIds(visible), [visible])
 
-  if (loading) return <div className={layout.page}><Spinner label="Loading accounts…" /></div>
+  if (loading) {
+    return (
+      <div className={layout.page}>
+        <Spinner label="Loading accounts…" />
+      </div>
+    )
+  }
+
   if (error) {
     return (
       <div className={layout.page}>
         <Title3>Chart of accounts</Title3>
-        <Body1 style={{ color: tokens.colorPaletteRedForeground1 }}>{error}</Body1>
+        <MessageBar intent="error">
+          <MessageBarBody>
+            <MessageBarTitle>Could not load accounts</MessageBarTitle>
+            {error}
+          </MessageBarBody>
+        </MessageBar>
       </div>
     )
   }
@@ -130,20 +147,20 @@ export function ChartOfAccountsPage() {
         </Caption1>
       </div>
 
-      <div className={layout.toolbar}>
-        <Input
+      <Toolbar aria-label="Filter accounts">
+        <SearchBox
           value={search}
           onChange={(_, data) => setSearch(data.value)}
           placeholder="Search code or name"
-          contentBefore={<SearchRegular />}
           style={{ minWidth: '280px' }}
         />
+        <ToolbarDivider />
         <Switch
-          checked={showControlsOnly}
-          onChange={(_, d) => setShowControlsOnly(d.checked)}
+          checked={controlsOnly}
+          onChange={(_, d) => setControlsOnly(d.checked)}
           label="Control accounts only"
         />
-        <div className={layout.spacer} />
+        <div className={styles.grow} />
         <div className={styles.legend}>
           {(Object.keys(accountTypeColor) as AccountTypeName[]).map((type) => (
             <Badge key={type} appearance="tint" color={accountTypeColor[type]}>
@@ -151,21 +168,19 @@ export function ChartOfAccountsPage() {
             </Badge>
           ))}
         </div>
-      </div>
+      </Toolbar>
 
-      <div className={layout.surface}>
-        <div className={styles.treeSurface}>
-          {visible.length === 0 ? (
-            <Caption1 className={layout.subtle}>No accounts match “{search}”.</Caption1>
-          ) : (
-            <Tree aria-label="Chart of accounts" openItems={openItems}>
-              {visible.map((node) => (
-                <AccountTreeItem key={node.id} node={node} />
-              ))}
-            </Tree>
-          )}
-        </div>
-      </div>
+      <Card>
+        {visible.length === 0 ? (
+          <Caption1 className={layout.subtle}>No accounts match “{search}”.</Caption1>
+        ) : (
+          <Tree aria-label="Chart of accounts" openItems={openItems}>
+            {visible.map((node) => (
+              <AccountTreeItem key={node.id} node={node} />
+            ))}
+          </Tree>
+        )}
+      </Card>
     </div>
   )
 }

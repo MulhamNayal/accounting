@@ -1,4 +1,4 @@
-import { makeStyles, shorthands, tokens } from '@fluentui/react-components'
+import { makeStyles, tokens } from '@fluentui/react-components'
 
 /**
  * Cross-cutting visual conventions. Anything that should look the same on every page
@@ -25,19 +25,6 @@ export const useLayoutStyles = makeStyles({
     marginBottom: tokens.spacingVerticalM,
   },
   subtle: { color: tokens.colorNeutralForeground3 },
-  /** The standard container for tabular content. */
-  surface: {
-    backgroundColor: tokens.colorNeutralBackground1,
-    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
-    borderRadius: tokens.borderRadiusMedium,
-    overflowX: 'auto',
-  },
-  toolbar: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: tokens.spacingHorizontalS,
-    flexWrap: 'wrap',
-  },
   spacer: { flexGrow: 1 },
 })
 
