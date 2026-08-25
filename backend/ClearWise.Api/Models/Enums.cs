@@ -67,4 +67,29 @@ public enum AccountSystemRole
 
     /// <summary>Where the year-end close transfers accumulated profit.</summary>
     RetainedEarnings = 3,
+
+    /// <summary>
+    /// Where the residue from translating an entity into the group's presentation currency
+    /// is taken.
+    /// </summary>
+    /// <remarks>
+    /// Translating the balance sheet at closing rate and the income statement at average
+    /// rate does not balance, and that is not an error — it is a real consequence of the
+    /// rates differing. IAS 21 takes the difference to a separate reserve in equity rather
+    /// than to profit, because it is not a gain anyone realised.
+    /// </remarks>
+    CurrencyTranslationReserve = 4,
+}
+
+/// <summary>Why a line appears in a consolidation.</summary>
+public enum ConsolidationLineKind
+{
+    /// <summary>An entity's own balance, translated if necessary.</summary>
+    Entity = 1,
+
+    /// <summary>Removal of a transaction between two entities in the group.</summary>
+    Elimination = 2,
+
+    /// <summary>The residue from translating at differing rates.</summary>
+    Translation = 3,
 }

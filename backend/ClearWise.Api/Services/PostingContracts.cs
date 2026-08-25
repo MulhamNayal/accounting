@@ -30,6 +30,17 @@ public record PostingLineRequest(
     /// from the documents, and so a superseded regime's history stays intact.
     /// </summary>
     Guid? TaxCodeId = null,
+    /// <summary>
+    /// Names a sister entity when this posting arises from a transaction within the group,
+    /// so consolidation can eliminate it.
+    /// </summary>
+    /// <remarks>
+    /// Must be set here, at posting time. Postings are immutable, so there is no marking a
+    /// transaction as intercompany afterwards — and that is the right constraint: it is a
+    /// deliberate statement about what happened, not something to be inferred later by
+    /// matching amounts, which would eliminate genuine third-party trade.
+    /// </remarks>
+    Guid? IntercompanyEntityId = null,
     string? Description = null);
 
 public record ReverseEntryRequest(string ReasonCode);

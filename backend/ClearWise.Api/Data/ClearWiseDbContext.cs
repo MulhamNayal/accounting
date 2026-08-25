@@ -28,6 +28,9 @@ public class ClearWiseDbContext(DbContextOptions<ClearWiseDbContext> options) : 
     public DbSet<StockMove> StockMoves => Set<StockMove>();
     public DbSet<CostLayer> CostLayers => Set<CostLayer>();
     public DbSet<CostConsumption> CostConsumptions => Set<CostConsumption>();
+    public DbSet<ExchangeRate> ExchangeRates => Set<ExchangeRate>();
+    public DbSet<ConsolidationRun> ConsolidationRuns => Set<ConsolidationRun>();
+    public DbSet<ConsolidationPosting> ConsolidationPostings => Set<ConsolidationPosting>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -136,6 +139,62 @@ public class ClearWiseDbContext(DbContextOptions<ClearWiseDbContext> options) : 
         ConfigureReceivables(builder);
         ConfigureTax(builder);
         ConfigureStock(builder);
+        ConfigureConsolidation(builder);
+    }
+
+    private static void ConfigureConsolidation(ModelBuilder builder)
+    {
+        builder.Entity<ExchangeRate>(e =>
+        {
+            e.Property(x => x.FromCurrency).HasMaxLength(3).IsFixedLength().IsRequired();
+            e.Property(x => x.ToCurrency).HasMaxLength(3).IsFixedLength().IsRequired();
+            e.Property(x => x.ClosingRate).HasPrecision(19, 10);
+            e.Property(x => x.AverageRate).HasPrecision(19, 10);
+            e.Property(x => x.Source).HasMaxLength(120);
+
+            e.HasIndex(x => new { x.TenantId, x.FromCurrency, x.ToCurrency, x.RateDate }).IsUnique();
+
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_exchange_rate_positive",
+                "closing_rate > 0 AND (average_rate IS NULL OR average_rate > 0)"));
+
+            // A currency's rate against itself is always one and recording it invites a
+            // contradictory row.
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_exchange_rate_distinct_currencies", "from_currency <> to_currency"));
+        });
+
+        builder.Entity<ConsolidationRun>(e =>
+        {
+            e.Property(x => x.PresentationCurrency).HasMaxLength(3).IsFixedLength().IsRequired();
+            e.Property(x => x.Note).HasMaxLength(500);
+
+            e.HasIndex(x => new { x.TenantId, x.AsOf });
+        });
+
+        builder.Entity<ConsolidationPosting>(e =>
+        {
+            e.Property(x => x.Direction).HasConversion<string>().HasMaxLength(10);
+            e.Property(x => x.Kind).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.FunctionalAmount).HasPrecision(19, 4);
+            e.Property(x => x.PresentationAmount).HasPrecision(19, 4);
+            e.Property(x => x.RateUsed).HasPrecision(19, 10);
+
+            e.HasIndex(x => x.ConsolidationRunId);
+
+            e.HasOne(x => x.ConsolidationRun).WithMany(r => r.Postings)
+                .HasForeignKey(x => x.ConsolidationRunId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Account).WithMany()
+                .HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.LegalEntity).WithMany()
+                .HasForeignKey(x => x.LegalEntityId).OnDelete(DeleteBehavior.Restrict);
+
+            // Only a translation line belongs to no entity; an entity balance or an
+            // elimination is always attributable to one.
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_consolidation_line_entity",
+                "legal_entity_id IS NOT NULL OR kind = 'Translation'"));
+        });
     }
 
     private static void ConfigureStock(ModelBuilder builder)
@@ -518,6 +577,11 @@ public class ClearWiseDbContext(DbContextOptions<ClearWiseDbContext> options) : 
                 .HasForeignKey(x => x.JournalEntryId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Account).WithMany()
                 .HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Restrict);
+            // legal_entity_id carried no foreign key until now, so a posting could name an
+            // entity that does not exist. Every existing row references a real one, so this
+            // constrains what was already true rather than changing anything.
+            e.HasOne(x => x.LegalEntity).WithMany()
+                .HasForeignKey(x => x.LegalEntityId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.IntercompanyEntity).WithMany()
                 .HasForeignKey(x => x.IntercompanyEntityId).OnDelete(DeleteBehavior.Restrict);
 

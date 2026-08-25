@@ -17,6 +17,7 @@ public class Posting
     public Guid TenantId { get; set; }
 
     public Guid LegalEntityId { get; set; }
+    public LegalEntity? LegalEntity { get; set; }
 
     public Guid JournalEntryId { get; set; }
     public JournalEntry? JournalEntry { get; set; }
