@@ -90,6 +90,7 @@ public static class DevDataSeeder
             ("JournalEntry", "JV", "Journal Voucher", "JV-{0:D5}", false),
             ("SalesInvoice", "IV", "Sales Invoice", "IV-{1:yyyy}-{0:D5}", true),
             ("CreditNote", "CN", "Credit Note", "CN-{1:yyyy}-{0:D5}", true),
+            ("CustomerReceipt", "OR", "Official Receipt", "OR-{1:yyyy}-{0:D5}", false),
         ];
 
         foreach (var entity in entities)
@@ -269,7 +270,8 @@ public static class DevDataSeeder
         var accounts = new List<Account>();
 
         Account Add(string code, string name, AccountType type, Account? parent = null,
-                    bool postable = true, ControlType control = ControlType.None)
+                    bool postable = true, ControlType control = ControlType.None,
+                    AccountSystemRole role = AccountSystemRole.None)
         {
             var account = new Account
             {
@@ -281,6 +283,7 @@ public static class DevDataSeeder
                 ParentId = parent?.Id,
                 IsPostable = postable,
                 ControlType = control,
+                SystemRole = role,
             };
             accounts.Add(account);
             return account;
@@ -302,13 +305,16 @@ public static class DevDataSeeder
 
         var equity = Add("3000", "Equity", AccountType.Equity, postable: false);
         Add("3010", "Share Capital", AccountType.Equity, equity);
-        Add("3020", "Retained Earnings", AccountType.Equity, equity);
+        Add("3020", "Retained Earnings", AccountType.Equity, equity,
+            role: AccountSystemRole.RetainedEarnings);
 
         var revenue = Add("4000", "Revenue", AccountType.Income, postable: false);
         Add("4010", "Sales", AccountType.Income, revenue);
         Add("4020", "Commission Income", AccountType.Income, revenue);
-        Add("4900", "Realised Foreign Exchange Gain/Loss", AccountType.Income, revenue);
-        Add("4910", "Unrealised Foreign Exchange Gain/Loss", AccountType.Income, revenue);
+        Add("4900", "Realised Foreign Exchange Gain/Loss", AccountType.Income, revenue,
+            role: AccountSystemRole.RealisedFxGainLoss);
+        Add("4910", "Unrealised Foreign Exchange Gain/Loss", AccountType.Income, revenue,
+            role: AccountSystemRole.UnrealisedFxGainLoss);
 
         var costOfSales = Add("5000", "Cost of Sales", AccountType.Expense, postable: false);
         Add("5010", "Cost of Goods Sold", AccountType.Expense, costOfSales);

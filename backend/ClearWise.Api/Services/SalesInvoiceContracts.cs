@@ -58,6 +58,7 @@ public record SalesInvoiceLineDetail(
     string RevenueAccountCode,
     string RevenueAccountName);
 
+/// <summary>Returned by <see cref="ICustomerService"/>. No balance — that comes from postings.</summary>
 public record CustomerSummary(
     Guid Id,
     string Code,

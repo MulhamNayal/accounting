@@ -45,3 +45,26 @@ public enum PostingDirection
     Debit = 1,
     Credit = 2,
 }
+
+/// <summary>
+/// Marks an account the system itself needs to find.
+/// </summary>
+/// <remarks>
+/// Distinct from <see cref="ControlType"/>, which says an account's balance is composed of
+/// subledger detail. This says "when the system must post somewhere specific, post here" —
+/// exchange differences on settlement, the year-end transfer of profit. Without it those
+/// accounts would have to be identified by code, and a chart is the customer's to renumber.
+/// </remarks>
+public enum AccountSystemRole
+{
+    None = 0,
+
+    /// <summary>Exchange difference arising when a foreign-currency balance is settled.</summary>
+    RealisedFxGainLoss = 1,
+
+    /// <summary>Exchange difference on revaluing an open balance at period end.</summary>
+    UnrealisedFxGainLoss = 2,
+
+    /// <summary>Where the year-end close transfers accumulated profit.</summary>
+    RetainedEarnings = 3,
+}

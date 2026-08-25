@@ -1,7 +1,5 @@
-using ClearWise.Api.Data;
 using ClearWise.Api.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace ClearWise.Api.Controllers;
 
@@ -47,7 +45,7 @@ public class SalesInvoicesController(ISalesInvoiceService invoices) : Controller
 
 [ApiController]
 [Route("api/customers")]
-public class CustomersController(ClearWiseDbContext db) : ControllerBase
+public class CustomersController(ICustomerService customers) : ControllerBase
 {
     /// <summary>
     /// Customers are tenant-wide, not per entity, so a group billing one client from two
@@ -56,10 +54,5 @@ public class CustomersController(ClearWiseDbContext db) : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<CustomerSummary>>> ListAsync(
         CancellationToken cancellationToken)
-        => Ok(await db.Customers
-            .AsNoTracking()
-            .OrderBy(c => c.Code)
-            .Select(c => new CustomerSummary(
-                c.Id, c.Code, c.Name, c.TaxId, c.CurrencyCode, c.CreditTermDays, c.IsActive))
-            .ToListAsync(cancellationToken));
+        => Ok(await customers.ListAsync(cancellationToken));
 }

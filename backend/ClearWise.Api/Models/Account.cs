@@ -35,6 +35,13 @@ public class Account
     /// </summary>
     public ControlType ControlType { get; set; } = ControlType.None;
 
+    /// <summary>
+    /// Marks this as the account the system posts to for a specific purpose — exchange
+    /// differences, the year-end profit transfer. Identified by role rather than by code,
+    /// because the chart's numbering belongs to the customer.
+    /// </summary>
+    public AccountSystemRole SystemRole { get; set; } = AccountSystemRole.None;
+
     public bool IsActive { get; set; } = true;
 
     /// <summary>

@@ -20,6 +20,8 @@ public class ClearWiseDbContext(DbContextOptions<ClearWiseDbContext> options) : 
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<SalesInvoice> SalesInvoices => Set<SalesInvoice>();
     public DbSet<SalesInvoiceLine> SalesInvoiceLines => Set<SalesInvoiceLine>();
+    public DbSet<CustomerReceipt> CustomerReceipts => Set<CustomerReceipt>();
+    public DbSet<Allocation> Allocations => Set<Allocation>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -29,6 +31,7 @@ public class ClearWiseDbContext(DbContextOptions<ClearWiseDbContext> options) : 
         // directly by people reconciling figures, and 'HardClosed' reads better than 3.
         builder.Entity<Account>().Property(a => a.AccountType).HasConversion<string>().HasMaxLength(20);
         builder.Entity<Account>().Property(a => a.ControlType).HasConversion<string>().HasMaxLength(20);
+        builder.Entity<Account>().Property(a => a.SystemRole).HasConversion<string>().HasMaxLength(30);
         builder.Entity<FiscalYear>().Property(f => f.State).HasConversion<string>().HasMaxLength(20);
         builder.Entity<AccountingPeriod>().Property(p => p.State).HasConversion<string>().HasMaxLength(20);
         builder.Entity<PeriodEvent>().Property(e => e.FromState).HasConversion<string>().HasMaxLength(20);
@@ -124,6 +127,75 @@ public class ClearWiseDbContext(DbContextOptions<ClearWiseDbContext> options) : 
         ConfigureLedger(builder);
         ConfigureNumbering(builder);
         ConfigureSales(builder);
+        ConfigureReceivables(builder);
+    }
+
+    private static void ConfigureReceivables(ModelBuilder builder)
+    {
+        builder.Entity<CustomerReceipt>(e =>
+        {
+            e.Property(x => x.DocNo).HasMaxLength(40);
+            e.Property(x => x.CurrencyCode).HasMaxLength(3).IsFixedLength().IsRequired();
+            e.Property(x => x.FxRate).HasPrecision(19, 10);
+            e.Property(x => x.Amount).HasPrecision(19, 4);
+            e.Property(x => x.Reference).HasMaxLength(80);
+            e.Property(x => x.Memo).HasMaxLength(500);
+            e.Property(x => x.State).HasConversion<string>().HasMaxLength(20);
+
+            e.HasIndex(x => new { x.LegalEntityId, x.DocNo })
+                .IsUnique()
+                .HasFilter("doc_no IS NOT NULL");
+            e.HasIndex(x => x.CustomerId);
+
+            e.HasOne(x => x.LegalEntity).WithMany()
+                .HasForeignKey(x => x.LegalEntityId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Customer).WithMany()
+                .HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.BankAccount).WithMany()
+                .HasForeignKey(x => x.BankAccountId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.JournalEntry).WithMany()
+                .HasForeignKey(x => x.JournalEntryId).OnDelete(DeleteBehavior.Restrict);
+
+            e.ToTable(t => t.HasCheckConstraint("ck_receipt_amount_positive", "amount > 0"));
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_receipt_posted_is_complete",
+                "(state = 'Draft' AND doc_no IS NULL AND journal_entry_id IS NULL) "
+                + "OR (state = 'Posted' AND doc_no IS NOT NULL AND journal_entry_id IS NOT NULL)"));
+        });
+
+        builder.Entity<Allocation>(e =>
+        {
+            e.Property(x => x.Amount).HasPrecision(19, 4);
+            e.Property(x => x.FunctionalAmount).HasPrecision(19, 4);
+            e.Property(x => x.FxGainLossFunctional).HasPrecision(19, 4);
+
+            e.HasIndex(x => x.CustomerReceiptId);
+            e.HasIndex(x => x.SalesInvoiceId);
+
+            // One reversal per allocation, enforced rather than merely checked in code.
+            e.HasIndex(x => x.ReversesAllocationId)
+                .IsUnique()
+                .HasFilter("reverses_allocation_id IS NOT NULL");
+
+            e.HasOne(x => x.CustomerReceipt).WithMany()
+                .HasForeignKey(x => x.CustomerReceiptId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.SalesInvoice).WithMany()
+                .HasForeignKey(x => x.SalesInvoiceId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.JournalEntry).WithMany()
+                .HasForeignKey(x => x.JournalEntryId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.ReversesAllocation).WithMany()
+                .HasForeignKey(x => x.ReversesAllocationId).OnDelete(DeleteBehavior.Restrict);
+
+            // Zero would be a no-op recorded as if it were a decision.
+            e.ToTable(t => t.HasCheckConstraint("ck_allocation_amount_nonzero", "amount <> 0"));
+
+            // Sign carries meaning: an original allocation applies money, a reversal takes
+            // it back. Mixing them would make the running total meaningless.
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_allocation_sign_matches_kind",
+                "(reverses_allocation_id IS NULL AND amount > 0) "
+                + "OR (reverses_allocation_id IS NOT NULL AND amount < 0)"));
+        });
     }
 
     private static void ConfigureSales(ModelBuilder builder)

@@ -19,9 +19,13 @@ builder.Services.AddCors(options => options.AddPolicy(DevCorsPolicy, policy =>
 builder.Services.AddScoped<ITenantContext, TenantContext>();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<TenantConnectionInterceptor>();
+builder.Services.AddScoped<IEntityService, EntityService>();
+builder.Services.AddScoped<IChartOfAccountsService, ChartOfAccountsService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<INumberSeriesService, NumberSeriesService>();
 builder.Services.AddScoped<IPostingService, PostingService>();
 builder.Services.AddScoped<ISalesInvoiceService, SalesInvoiceService>();
+builder.Services.AddScoped<IReceivablesService, ReceivablesService>();
 
 // Posting rules are stateless pure functions from document to posting set.
 builder.Services.AddSingleton<SalesInvoicePostingRule>();
