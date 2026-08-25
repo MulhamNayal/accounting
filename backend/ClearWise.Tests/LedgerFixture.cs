@@ -111,6 +111,36 @@ public static class LedgerFixture
             State = PeriodState.HardClosed,
         });
 
+        // Two series: a gappy one for journals and a gapless one, so tests can exercise
+        // both allocation paths.
+        db.NumberSeries.Add(new NumberSeries
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            LegalEntityId = entityId,
+            DocumentType = "JournalEntry",
+            Code = "JV",
+            Name = "Journal Voucher",
+            Format = "JV-{0:D5}",
+            ResetPolicy = NumberResetPolicy.Yearly,
+            IsGapless = false,
+            IsDefault = true,
+        });
+
+        db.NumberSeries.Add(new NumberSeries
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            LegalEntityId = entityId,
+            DocumentType = "SalesInvoice",
+            Code = "IV",
+            Name = "Sales Invoice",
+            Format = "IV-{1:yyyy}-{0:D5}",
+            ResetPolicy = NumberResetPolicy.Yearly,
+            IsGapless = true,
+            IsDefault = true,
+        });
+
         await db.SaveChangesAsync();
 
         return new LedgerWorld(

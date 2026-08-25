@@ -2,6 +2,7 @@ using ClearWise.Api.Data;
 using ClearWise.Api.Exceptions;
 using ClearWise.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
 
 namespace ClearWise.Api.Services;
@@ -33,8 +34,11 @@ public interface IPostingService
 public sealed class PostingService(
     ClearWiseDbContext db,
     ICurrentUser currentUser,
+    INumberSeriesService numbers,
     ILogger<PostingService> logger) : IPostingService
 {
+    private const string JournalEntryDocumentType = "JournalEntry";
+
     public async Task<JournalEntryDetail> PostAsync(
         PostJournalEntryRequest request, CancellationToken ct = default)
     {
@@ -65,12 +69,18 @@ public sealed class PostingService(
                 + $"in {entity.FunctionalCurrency}, a difference of {debits - credits:N2}.");
         }
 
+        // One transaction spans number allocation and the write. The counter row stays
+        // locked until commit, so a rolled-back post returns its number rather than burning
+        // it — which is the whole point of a gapless series.
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+
         var entry = new JournalEntry
         {
             Id = Guid.NewGuid(),
             TenantId = entity.TenantId,
             LegalEntityId = entity.Id,
-            EntryNo = await NextEntryNumberAsync(ct),
+            EntryNo = await numbers.AllocateAsync(
+                entity.Id, JournalEntryDocumentType, request.EntryDate, ct),
             EntryDate = request.EntryDate,
             PeriodId = period.Id,
             SourceDocumentType = string.IsNullOrWhiteSpace(request.SourceDocumentType)
@@ -94,7 +104,7 @@ public sealed class PostingService(
         }
 
         db.JournalEntries.Add(entry);
-        await SaveOrTranslateAsync(ct);
+        await SaveAndCommitAsync(transaction, ct);
 
         logger.LogInformation(
             "Posted {EntryNo} for entity {Entity} with {Lines} lines",
@@ -134,12 +144,15 @@ public sealed class PostingService(
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var period = await ResolvePeriodAsync(original.LegalEntityId, today, ct);
 
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+
         var reversal = new JournalEntry
         {
             Id = Guid.NewGuid(),
             TenantId = original.TenantId,
             LegalEntityId = original.LegalEntityId,
-            EntryNo = await NextEntryNumberAsync(ct),
+            EntryNo = await numbers.AllocateAsync(
+                original.LegalEntityId, JournalEntryDocumentType, today, ct),
             EntryDate = today,
             PeriodId = period.Id,
             SourceDocumentType = original.SourceDocumentType,
@@ -185,7 +198,7 @@ public sealed class PostingService(
         }
 
         db.JournalEntries.Add(reversal);
-        await SaveOrTranslateAsync(ct);
+        await SaveAndCommitAsync(transaction, ct);
 
         return await GetAsync(reversal.Id, ct);
     }
@@ -407,34 +420,24 @@ public sealed class PostingService(
         }
     }
 
-    private async Task<string> NextEntryNumberAsync(CancellationToken ct)
-    {
-        await db.Database.OpenConnectionAsync(ct);
-        try
-        {
-            await using var command = db.Database.GetDbConnection().CreateCommand();
-            command.CommandText = "SELECT nextval('journal_entry_no_seq')";
-            var next = (long)(await command.ExecuteScalarAsync(ct))!;
-            return $"JV-{next:D6}";
-        }
-        finally
-        {
-            await db.Database.CloseConnectionAsync();
-        }
-    }
-
     /// <summary>
-    /// Turns a database refusal into something the caller can read.
+    /// Writes the entry and commits, translating a database refusal into something readable.
     /// </summary>
     /// <remarks>
-    /// Reaching here means the checks above missed a case the database caught — a race, or
-    /// a rule enforced in only one place. Worth surfacing distinctly rather than as a 500.
+    /// The commit is inside the try for a reason: the balance constraint is deferred, so it
+    /// fires at COMMIT rather than at SaveChanges. Wrapping only the save would let the one
+    /// failure this design cares about most escape as an unhandled 500.
+    /// <para>
+    /// Reaching here at all means the service's own checks missed a case the database
+    /// caught — a race, or a rule enforced in only one place. Worth surfacing distinctly.
+    /// </para>
     /// </remarks>
-    private async Task SaveOrTranslateAsync(CancellationToken ct)
+    private async Task SaveAndCommitAsync(IDbContextTransaction transaction, CancellationToken ct)
     {
         try
         {
             await db.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
         }
         catch (Exception ex) when (ex.GetBaseException() is PostgresException pg)
         {

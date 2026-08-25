@@ -3,6 +3,7 @@ using System;
 using ClearWise.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ClearWise.Api.Migrations
 {
     [DbContext(typeof(ClearWiseDbContext))]
-    partial class ClearWiseDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260825062328_Layer2_NumberSeries")]
+    partial class Layer2_NumberSeries
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

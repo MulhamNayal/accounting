@@ -15,6 +15,8 @@ public class ClearWiseDbContext(DbContextOptions<ClearWiseDbContext> options) : 
     public DbSet<PeriodEvent> PeriodEvents => Set<PeriodEvent>();
     public DbSet<JournalEntry> JournalEntries => Set<JournalEntry>();
     public DbSet<Posting> Postings => Set<Posting>();
+    public DbSet<NumberSeries> NumberSeries => Set<NumberSeries>();
+    public DbSet<NumberCounter> NumberCounters => Set<NumberCounter>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -117,6 +119,39 @@ public class ClearWiseDbContext(DbContextOptions<ClearWiseDbContext> options) : 
         });
 
         ConfigureLedger(builder);
+        ConfigureNumbering(builder);
+    }
+
+    private static void ConfigureNumbering(ModelBuilder builder)
+    {
+        builder.Entity<NumberSeries>(e =>
+        {
+            e.Property(x => x.DocumentType).HasMaxLength(60).IsRequired();
+            e.Property(x => x.Code).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Name).HasMaxLength(120).IsRequired();
+            e.Property(x => x.Format).HasMaxLength(60).IsRequired();
+            e.Property(x => x.ResetPolicy).HasConversion<string>().HasMaxLength(20);
+
+            e.HasIndex(x => new { x.LegalEntityId, x.Code }).IsUnique();
+            e.HasIndex(x => new { x.LegalEntityId, x.DocumentType, x.IsActive });
+
+            e.HasOne(x => x.LegalEntity).WithMany()
+                .HasForeignKey(x => x.LegalEntityId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<NumberCounter>(e =>
+        {
+            e.Property(x => x.PeriodKey).HasMaxLength(10).IsRequired();
+
+            // Without this, two callers creating the first counter for a window would each
+            // insert one and the series would immediately issue duplicate numbers.
+            e.HasIndex(x => new { x.NumberSeriesId, x.PeriodKey }).IsUnique();
+
+            e.HasOne(x => x.NumberSeries).WithMany(x => x.Counters)
+                .HasForeignKey(x => x.NumberSeriesId).OnDelete(DeleteBehavior.Restrict);
+
+            e.ToTable(t => t.HasCheckConstraint("ck_number_counter_positive", "next_number > 0"));
+        });
     }
 
     /// <summary>

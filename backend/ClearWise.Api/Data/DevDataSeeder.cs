@@ -34,6 +34,60 @@ public static class DevDataSeeder
         await SeedTenantAsync(db, cancellationToken);
         await SeedUserAsync(db, cancellationToken);
         await SeedCalendarAsync(db, cancellationToken);
+        await SeedNumberSeriesAsync(db, cancellationToken);
+    }
+
+    /// <summary>
+    /// A number series per entity for each document type that exists so far.
+    /// </summary>
+    /// <remarks>
+    /// Journals are gappy: nobody audits a journal voucher sequence for density, and paying
+    /// the serialisation cost there buys nothing. Sales invoices and credit notes are
+    /// gapless, because a tax authority does examine those and a hole invites the question
+    /// "where did that invoice go".
+    /// </remarks>
+    private static async Task SeedNumberSeriesAsync(
+        ClearWiseDbContext db, CancellationToken cancellationToken)
+    {
+        var entities = await db.LegalEntities.ToListAsync(cancellationToken);
+
+        (string DocumentType, string Code, string Name, string Format, bool Gapless)[] definitions =
+        [
+            ("JournalEntry", "JV", "Journal Voucher", "JV-{0:D5}", false),
+            ("SalesInvoice", "IV", "Sales Invoice", "IV-{1:yyyy}-{0:D5}", true),
+            ("CreditNote", "CN", "Credit Note", "CN-{1:yyyy}-{0:D5}", true),
+        ];
+
+        foreach (var entity in entities)
+        {
+            foreach (var (documentType, code, name, format, gapless) in definitions)
+            {
+                var exists = await db.NumberSeries.AnyAsync(
+                    s => s.LegalEntityId == entity.Id && s.Code == code, cancellationToken);
+
+                if (exists)
+                {
+                    continue;
+                }
+
+                db.NumberSeries.Add(new NumberSeries
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = DemoTenantId,
+                    LegalEntityId = entity.Id,
+                    DocumentType = documentType,
+                    Code = code,
+                    Name = name,
+                    Format = format,
+                    ResetPolicy = NumberResetPolicy.Yearly,
+                    IsGapless = gapless,
+                    IsDefault = true,
+                    IsActive = true,
+                });
+            }
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>

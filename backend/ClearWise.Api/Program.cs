@@ -19,6 +19,7 @@ builder.Services.AddCors(options => options.AddPolicy(DevCorsPolicy, policy =>
 builder.Services.AddScoped<ITenantContext, TenantContext>();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<TenantConnectionInterceptor>();
+builder.Services.AddScoped<INumberSeriesService, NumberSeriesService>();
 builder.Services.AddScoped<IPostingService, PostingService>();
 
 // Controllers never catch. Exception type maps to status code in one place.
