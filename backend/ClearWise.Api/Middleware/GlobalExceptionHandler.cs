@@ -52,6 +52,7 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
 
     public static int MapStatusCode(Exception exception) => exception switch
     {
+        AuthenticationFailedException => StatusCodes.Status401Unauthorized,
         NotFoundException => StatusCodes.Status404NotFound,
         PostingValidationException => StatusCodes.Status400BadRequest,
         LedgerIntegrityException => StatusCodes.Status409Conflict,

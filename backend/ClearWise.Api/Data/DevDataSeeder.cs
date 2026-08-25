@@ -1,4 +1,5 @@
 using ClearWise.Api.Models;
+using ClearWise.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace ClearWise.Api.Data;
@@ -17,8 +18,13 @@ public static class DevDataSeeder
     /// <summary>Fixed so the frontend can address the demo tenant without a login.</summary>
     public static readonly Guid DemoTenantId = Guid.Parse("0195c0de-0000-4000-8000-000000000001");
 
-    /// <summary>Stands in for an authenticated principal until authentication exists.</summary>
     public static readonly Guid DemoUserId = Guid.Parse("0195c0de-0000-4000-8000-000000000002");
+
+    /// <summary>
+    /// The demo account's password. Development seeding only — this constant exists in a
+    /// public repository, so it is a convenience for a local demo and nothing more.
+    /// </summary>
+    public const string DemoPassword = "clearwise-demo";
 
     public static async Task SeedAsync(IServiceProvider services, CancellationToken cancellationToken = default)
     {
@@ -260,19 +266,38 @@ public static class DevDataSeeder
     /// </summary>
     private static async Task SeedUserAsync(ClearWiseDbContext db, CancellationToken cancellationToken)
     {
-        if (await db.Users.AnyAsync(u => u.Id == DemoUserId, cancellationToken))
+        var existing = await db.Users.FirstOrDefaultAsync(u => u.Id == DemoUserId, cancellationToken);
+
+        if (existing is not null)
         {
+            // A database seeded before local sign-in existed has a user with no password,
+            // which cannot authenticate. Guarding the whole method on the user's existence
+            // would leave it that way — the same mistake that left journal entries with no
+            // user to attribute them to.
+            if (existing.PasswordHash is null)
+            {
+                existing.PasswordHash = AuthService.HashPassword(existing, DemoPassword);
+                await db.SaveChangesAsync(cancellationToken);
+            }
+
             return;
         }
 
-        db.Users.Add(new AppUser
+        var user = new AppUser
         {
             Id = DemoUserId,
             TenantId = DemoTenantId,
             Email = "demo@clearwise.test",
             DisplayName = "Demo User",
             CreatedAtUtc = DateTimeOffset.UtcNow,
-        });
+        };
+
+        // A known password for local development only. Hashed with the same algorithm as a
+        // real sign-in, so the seeded account exercises the actual code path rather than a
+        // shortcut around it.
+        user.PasswordHash = AuthService.HashPassword(user, DemoPassword);
+
+        db.Users.Add(user);
 
         await db.SaveChangesAsync(cancellationToken);
     }

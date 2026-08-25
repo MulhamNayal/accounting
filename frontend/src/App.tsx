@@ -10,20 +10,27 @@ import {
   webDarkTheme,
   webLightTheme,
 } from '@fluentui/react-components'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { currentSession, currentToken, loadSession, signOut } from './api/auth'
+import type { Session } from './api/auth'
+import { setTokenReader, setUnauthorizedHandler } from './api/client'
 import { getEntities } from './api/entities'
 import type { LegalEntitySummary } from './api/entities'
 import { AppShell } from './components/AppShell'
-import { ChartOfAccountsPage } from './pages/ChartOfAccountsPage'
 import { AgeingPage } from './pages/AgeingPage'
+import { ChartOfAccountsPage } from './pages/ChartOfAccountsPage'
 import { EntitiesPage } from './pages/EntitiesPage'
 import { InvoicesPage } from './pages/InvoicesPage'
 import { JournalsPage } from './pages/JournalsPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { ReceiptsPage } from './pages/ReceiptsPage'
+import { SignInPage } from './pages/SignInPage'
 import { StockPage } from './pages/StockPage'
 import { TrialBalancePage } from './pages/TrialBalancePage'
+
+// Wired once at module load, before any component can issue a request.
+setTokenReader(currentToken)
 
 const useStyles = makeStyles({
   centre: {
@@ -40,9 +47,10 @@ const THEME_KEY = 'clearwise.theme'
 
 function App() {
   const styles = useStyles()
+  const [session, setSession] = useState<Session | null>(() => loadSession())
   const [entities, setEntities] = useState<LegalEntitySummary[]>([])
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isDark, setIsDark] = useState(() => {
     try {
@@ -52,15 +60,32 @@ function App() {
     }
   })
 
+  const endSession = useCallback(() => {
+    signOut()
+    setSession(null)
+    setEntities([])
+    setSelectedEntityId(null)
+  }, [])
+
+  // A rejected token means the session is over, wherever the request came from. Handled
+  // centrally so no page has to think about it.
   useEffect(() => {
+    setUnauthorizedHandler(endSession)
+  }, [endSession])
+
+  useEffect(() => {
+    if (!session) return
+
+    setLoading(true)
     getEntities()
       .then((loaded) => {
         setEntities(loaded)
         setSelectedEntityId((current) => current ?? loaded[0]?.id ?? null)
+        setError(null)
       })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false))
-  }, [])
+  }, [session])
 
   const handleToggleTheme = (dark: boolean) => {
     setIsDark(dark)
@@ -74,11 +99,19 @@ function App() {
 
   const theme = isDark ? webDarkTheme : webLightTheme
 
+  if (!session) {
+    return (
+      <FluentProvider theme={theme}>
+        <SignInPage onSignedIn={setSession} />
+      </FluentProvider>
+    )
+  }
+
   if (loading) {
     return (
       <FluentProvider theme={theme}>
         <div className={styles.centre}>
-          <Spinner label="Starting ClearWise…" />
+          <Spinner label="Loading your books…" />
         </div>
       </FluentProvider>
     )
@@ -110,6 +143,8 @@ function App() {
         onSelectEntity={setSelectedEntityId}
         isDark={isDark}
         onToggleTheme={handleToggleTheme}
+        signedInAs={currentSession()?.displayName ?? null}
+        onSignOut={endSession}
       >
         <Routes>
           <Route path="/" element={<Navigate to="/invoices" replace />} />

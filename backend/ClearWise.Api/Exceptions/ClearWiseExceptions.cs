@@ -10,6 +10,15 @@ public class NotFoundException(string message) : Exception(message);
 public class PostingValidationException(string message) : Exception(message);
 
 /// <summary>
+/// Credentials were missing, wrong, or the account cannot sign in. Maps to 401.
+/// </summary>
+/// <remarks>
+/// The message is deliberately identical whether the email is unknown or the password is
+/// wrong. Distinguishing them tells an attacker which addresses are worth guessing against.
+/// </remarks>
+public class AuthenticationFailedException(string message) : Exception(message);
+
+/// <summary>
 /// The database refused an operation that would have broken a ledger invariant.
 /// </summary>
 /// <remarks>

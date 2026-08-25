@@ -1,44 +1,42 @@
+using System.Security.Claims;
+using ClearWise.Api.Auth;
 using ClearWise.Api.Data;
 
 namespace ClearWise.Api.Middleware;
 
 /// <summary>
-/// Resolves the tenant for the current request and puts it on <see cref="ITenantContext"/>,
-/// from where the connection interceptor pushes it into PostgreSQL.
+/// Puts the signed-in user and their tenant onto the request scope, from where the
+/// connection interceptor pushes the tenant into PostgreSQL for row level security.
 /// </summary>
 /// <remarks>
+/// <b>Both values come from the authenticated principal's claims, never from request
+/// input.</b> An earlier version read the tenant from an <c>X-Tenant-Id</c> header, which
+/// meant any caller could name any tenant and row level security would faithfully serve them
+/// that tenant's books. A claim is signed, so the client cannot choose it.
 /// <para>
-/// <b>This is a development placeholder.</b> Reading the tenant from a request header means
-/// any caller can name any tenant, which is obviously unacceptable in production. It exists
-/// so the stack can be exercised before authentication is built; the real implementation
-/// takes the tenant from an authenticated principal's claims and never from client input.
-/// </para>
-/// <para>
-/// Outside Development there is no header fallback and no default tenant: an unresolved
-/// tenant leaves the context empty, RLS matches nothing, and the request sees no data.
+/// An unauthenticated request leaves both empty. RLS then matches nothing and the request
+/// sees no data, which is the correct direction to fail — but authorization, not this
+/// middleware, is what actually rejects it.
 /// </para>
 /// </remarks>
-public sealed class TenantResolutionMiddleware(RequestDelegate next, IWebHostEnvironment environment)
+public sealed class TenantResolutionMiddleware(RequestDelegate next)
 {
-    public const string TenantHeader = "X-Tenant-Id";
-
     public async Task InvokeAsync(
         HttpContext context, ITenantContext tenantContext, ICurrentUser currentUser)
     {
-        if (environment.IsDevelopment())
+        var principal = context.User;
+
+        if (principal?.Identity?.IsAuthenticated == true)
         {
-            if (context.Request.Headers.TryGetValue(TenantHeader, out var header)
-                && Guid.TryParse(header.ToString(), out var headerTenantId))
+            if (Guid.TryParse(principal.FindFirstValue(ClearWiseClaims.TenantId), out var tenantId))
             {
-                tenantContext.SetTenant(headerTenantId);
+                tenantContext.SetTenant(tenantId);
             }
-            else
+
+            if (Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)
+                || Guid.TryParse(principal.FindFirstValue("sub"), out userId))
             {
-                tenantContext.SetTenant(DevDataSeeder.DemoTenantId);
-                // Only the demo tenant has a known user. A caller naming some other tenant
-                // gets no acting user, so posting fails rather than attributing entries to
-                // somebody from a different tenant.
-                currentUser.SetUser(DevDataSeeder.DemoUserId);
+                currentUser.SetUser(userId);
             }
         }
 

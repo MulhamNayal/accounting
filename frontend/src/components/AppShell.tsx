@@ -4,6 +4,12 @@ import {
   Caption1,
   Dropdown,
   Hamburger,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+  MenuPopover,
+  MenuTrigger,
   NavDrawer,
   NavDrawerBody,
   NavDrawerHeader,
@@ -33,7 +39,9 @@ import {
   BoxRegular,
   MoneyFilled,
   MoneyRegular,
+  PersonRegular,
   ScalesFilled,
+  SignOutRegular,
   ScalesRegular,
   SettingsFilled,
   SettingsRegular,
@@ -111,6 +119,8 @@ export interface AppShellProps {
   onSelectEntity: (id: string) => void
   isDark: boolean
   onToggleTheme: (dark: boolean) => void
+  signedInAs: string | null
+  onSignOut: () => void
 }
 
 export function AppShell({
@@ -120,6 +130,8 @@ export function AppShell({
   onSelectEntity,
   isDark,
   onToggleTheme,
+  signedInAs,
+  onSignOut,
 }: AppShellProps) {
   const styles = useStyles()
   const navigate = useNavigate()
@@ -226,6 +238,25 @@ export function AppShell({
             onChange={(_, data) => onToggleTheme(data.checked)}
             label="Dark"
           />
+
+          {signedInAs && (
+            <Menu>
+              <MenuTrigger disableButtonEnhancement>
+                <Tooltip content={`Signed in as ${signedInAs}`} relationship="label">
+                  <MenuButton appearance="subtle" icon={<PersonRegular />}>
+                    {signedInAs}
+                  </MenuButton>
+                </Tooltip>
+              </MenuTrigger>
+              <MenuPopover>
+                <MenuList>
+                  <MenuItem icon={<SignOutRegular />} onClick={onSignOut}>
+                    Sign out
+                  </MenuItem>
+                </MenuList>
+              </MenuPopover>
+            </Menu>
+          )}
         </header>
 
         <main className={styles.main}>{children}</main>
