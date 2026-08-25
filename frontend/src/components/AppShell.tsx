@@ -23,10 +23,14 @@ import {
   BookOpenRegular,
   BuildingBankFilled,
   BuildingBankRegular,
+  ClockFilled,
+  ClockRegular,
   DocumentBulletListFilled,
   DocumentBulletListRegular,
   DocumentTableFilled,
   DocumentTableRegular,
+  MoneyFilled,
+  MoneyRegular,
   ScalesFilled,
   ScalesRegular,
   SettingsFilled,
@@ -45,6 +49,8 @@ const AccountsIcon = bundleIcon(BookOpenFilled, BookOpenRegular)
 const JournalsIcon = bundleIcon(DocumentTableFilled, DocumentTableRegular)
 const ScalesIcon = bundleIcon(ScalesFilled, ScalesRegular)
 const InvoicesIcon = bundleIcon(DocumentBulletListFilled, DocumentBulletListRegular)
+const ReceiptsIcon = bundleIcon(MoneyFilled, MoneyRegular)
+const AgeingIcon = bundleIcon(ClockFilled, ClockRegular)
 const SettingsIcon = bundleIcon(SettingsFilled, SettingsRegular)
 
 const useStyles = makeStyles({
@@ -77,6 +83,8 @@ const useStyles = makeStyles({
 
 const SALES_ITEMS = [
   { path: '/invoices', label: 'Invoices', icon: <InvoicesIcon /> },
+  { path: '/receipts', label: 'Receipts', icon: <ReceiptsIcon /> },
+  { path: '/ageing', label: 'Ageing', icon: <AgeingIcon /> },
 ]
 
 const LEDGER_ITEMS = [

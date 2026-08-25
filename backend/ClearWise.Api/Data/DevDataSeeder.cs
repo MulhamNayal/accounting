@@ -36,6 +36,52 @@ public static class DevDataSeeder
         await SeedCalendarAsync(db, cancellationToken);
         await SeedNumberSeriesAsync(db, cancellationToken);
         await SeedCustomersAsync(db, cancellationToken);
+        await BackfillSystemRolesAsync(db, cancellationToken);
+    }
+
+    /// <summary>
+    /// Marks the well-known accounts on a database seeded before <see cref="AccountSystemRole"/>
+    /// existed.
+    /// </summary>
+    /// <remarks>
+    /// Development only, and matched by code, which is exactly what the role column exists
+    /// to avoid — but this is fixing up a demo chart the seeder created and whose codes it
+    /// therefore knows. Nothing in the application resolves an account by code.
+    /// </remarks>
+    private static async Task BackfillSystemRolesAsync(
+        ClearWiseDbContext db, CancellationToken cancellationToken)
+    {
+        (string Code, AccountSystemRole Role)[] roles =
+        [
+            ("4900", AccountSystemRole.RealisedFxGainLoss),
+            ("4910", AccountSystemRole.UnrealisedFxGainLoss),
+            ("3020", AccountSystemRole.RetainedEarnings),
+        ];
+
+        var changed = false;
+
+        foreach (var (code, role) in roles)
+        {
+            var alreadySet = await db.Accounts.AnyAsync(a => a.SystemRole == role, cancellationToken);
+            if (alreadySet)
+            {
+                continue;
+            }
+
+            var account = await db.Accounts.FirstOrDefaultAsync(a => a.Code == code, cancellationToken);
+            if (account is null)
+            {
+                continue;
+            }
+
+            account.SystemRole = role;
+            changed = true;
+        }
+
+        if (changed)
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
     }
 
     private static async Task SeedCustomersAsync(

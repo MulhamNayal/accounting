@@ -610,6 +610,7 @@ public sealed class ReceivablesService(
                 a.Amount,
                 a.FunctionalAmount,
                 a.FxGainLossFunctional,
+                a.JournalEntryId,
                 a.AllocatedAtUtc,
                 a.ReversesAllocationId))
             .ToListAsync(ct);

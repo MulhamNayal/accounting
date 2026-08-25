@@ -17,7 +17,8 @@ public sealed record LedgerWorld(
     Guid SalesAccountId,
     Guid ReceivablesAccountId,
     Guid HeadingAccountId,
-    Guid CustomerId)
+    Guid CustomerId,
+    Guid FxAccountId)
 {
     public ITenantContext Context()
     {
@@ -66,12 +67,18 @@ public static class LedgerFixture
         });
 
         var heading = NewAccount(tenantId, "1200", "Current Assets", AccountType.Asset, postable: false);
-        var cash = NewAccount(tenantId, "1230", "Cash and Bank", AccountType.Asset);
+        // Marked as a bank control account because a receipt must land somewhere that
+        // represents money, and the service checks for that.
+        var cash = NewAccount(
+            tenantId, "1230", "Cash and Bank", AccountType.Asset, control: ControlType.Bank);
         var receivables = NewAccount(
             tenantId, "1210", "Trade Receivables", AccountType.Asset,
             control: ControlType.AccountsReceivable);
         var sales = NewAccount(tenantId, "4010", "Sales", AccountType.Income);
-        db.Accounts.AddRange(heading, cash, receivables, sales);
+        var fx = NewAccount(
+            tenantId, "4900", "Realised Foreign Exchange Gain/Loss", AccountType.Income,
+            role: AccountSystemRole.RealisedFxGainLoss);
+        db.Accounts.AddRange(heading, cash, receivables, sales, fx);
 
         var fiscalYearId = Guid.NewGuid();
         db.FiscalYears.Add(new FiscalYear
@@ -142,6 +149,24 @@ public static class LedgerFixture
             IsDefault = true,
         });
 
+        db.NumberSeries.Add(new NumberSeries
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            LegalEntityId = entityId,
+            DocumentType = "CustomerReceipt",
+            Code = "OR",
+            Name = "Official Receipt",
+            Format = "OR-{1:yyyy}-{0:D5}",
+            ResetPolicy = NumberResetPolicy.Yearly,
+            IsGapless = false,
+            IsDefault = true,
+        });
+
+        // No series for ExchangeDifference: the FX entry is a journal entry and draws from
+        // the JournalEntry series. SourceDocumentType records what caused it, it does not
+        // select the numbering.
+
         var customerId = Guid.NewGuid();
         db.Customers.Add(new Customer
         {
@@ -158,12 +183,13 @@ public static class LedgerFixture
 
         return new LedgerWorld(
             tenantId, entityId, userId, openPeriodId, closedPeriodId,
-            cash.Id, sales.Id, receivables.Id, heading.Id, customerId);
+            cash.Id, sales.Id, receivables.Id, heading.Id, customerId, fx.Id);
     }
 
     private static Account NewAccount(
         Guid tenantId, string code, string name, AccountType type,
-        bool postable = true, ControlType control = ControlType.None) => new()
+        bool postable = true, ControlType control = ControlType.None,
+        AccountSystemRole role = AccountSystemRole.None) => new()
         {
             Id = Guid.NewGuid(),
             TenantId = tenantId,
@@ -172,6 +198,7 @@ public static class LedgerFixture
             AccountType = type,
             IsPostable = postable,
             ControlType = control,
+            SystemRole = role,
         };
 
     /// <summary>An unsaved entry with the given lines attached.</summary>

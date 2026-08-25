@@ -36,6 +36,8 @@ public record AllocationDetail(
     decimal Amount,
     decimal FunctionalAmount,
     decimal FxGainLossFunctional,
+    /// <summary>The exchange-difference entry, if the two rates differed. Null otherwise.</summary>
+    Guid? JournalEntryId,
     DateTimeOffset AllocatedAtUtc,
     Guid? ReversesAllocationId);
 
