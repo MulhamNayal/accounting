@@ -13,6 +13,8 @@ public class ClearWiseDbContext(DbContextOptions<ClearWiseDbContext> options) : 
     public DbSet<FiscalYear> FiscalYears => Set<FiscalYear>();
     public DbSet<AccountingPeriod> Periods => Set<AccountingPeriod>();
     public DbSet<PeriodEvent> PeriodEvents => Set<PeriodEvent>();
+    public DbSet<JournalEntry> JournalEntries => Set<JournalEntry>();
+    public DbSet<Posting> Postings => Set<Posting>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -112,6 +114,85 @@ public class ClearWiseDbContext(DbContextOptions<ClearWiseDbContext> options) : 
             // more likely a bug than an intent.
             e.ToTable(t => t.HasCheckConstraint(
                 "ck_period_event_state_changed", "from_state <> to_state"));
+        });
+
+        ConfigureLedger(builder);
+    }
+
+    /// <summary>
+    /// The posting core. Nothing here is ever updated or deleted — the application role's
+    /// privileges are revoked in the migration, so immutability is enforced below the
+    /// application rather than trusted to it.
+    /// </summary>
+    private static void ConfigureLedger(ModelBuilder builder)
+    {
+        builder.Entity<Posting>().Property(p => p.Direction).HasConversion<string>().HasMaxLength(10);
+
+        builder.Entity<JournalEntry>(e =>
+        {
+            e.Property(x => x.EntryNo).HasMaxLength(40).IsRequired();
+            e.Property(x => x.SourceDocumentType).HasMaxLength(60).IsRequired();
+            e.Property(x => x.ReasonCode).HasMaxLength(60);
+            e.Property(x => x.Memo).HasMaxLength(500);
+
+            e.HasIndex(x => new { x.LegalEntityId, x.EntryNo }).IsUnique();
+            e.HasIndex(x => new { x.LegalEntityId, x.EntryDate });
+            e.HasIndex(x => x.PeriodId);
+
+            e.HasOne(x => x.LegalEntity).WithMany()
+                .HasForeignKey(x => x.LegalEntityId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Period).WithMany()
+                .HasForeignKey(x => x.PeriodId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.PostedBy).WithMany()
+                .HasForeignKey(x => x.PostedByUserId).OnDelete(DeleteBehavior.Restrict);
+
+            // Both correction links point backwards, from the new entry to the old one.
+            e.HasOne(x => x.Reverses).WithMany()
+                .HasForeignKey(x => x.ReversesEntryId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Supersedes).WithMany()
+                .HasForeignKey(x => x.SupersedesEntryId).OnDelete(DeleteBehavior.Restrict);
+
+            // A correction with no stated reason is what an auditor asks about first.
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_journal_entry_reversal_has_reason",
+                "reverses_entry_id IS NULL OR reason_code IS NOT NULL"));
+
+            // An entry cannot reverse or supersede itself.
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_journal_entry_no_self_reference",
+                "(reverses_entry_id IS NULL OR reverses_entry_id <> id) "
+                + "AND (supersedes_entry_id IS NULL OR supersedes_entry_id <> id)"));
+        });
+
+        builder.Entity<Posting>(e =>
+        {
+            e.Property(x => x.Amount).HasPrecision(19, 4);
+            e.Property(x => x.FunctionalAmount).HasPrecision(19, 4);
+            e.Property(x => x.FxRate).HasPrecision(19, 10);
+            e.Property(x => x.CurrencyCode).HasMaxLength(3).IsFixedLength().IsRequired();
+            e.Property(x => x.Description).HasMaxLength(500);
+
+            e.HasIndex(x => new { x.JournalEntryId, x.LineNo }).IsUnique();
+
+            // Balance queries filter by account within an entity; ageing filters by
+            // customer or supplier on a control account.
+            e.HasIndex(x => new { x.LegalEntityId, x.AccountId });
+            e.HasIndex(x => new { x.LegalEntityId, x.CustomerId });
+            e.HasIndex(x => new { x.LegalEntityId, x.SupplierId });
+
+            e.HasOne(x => x.JournalEntry).WithMany(x => x.Postings)
+                .HasForeignKey(x => x.JournalEntryId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Account).WithMany()
+                .HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.IntercompanyEntity).WithMany()
+                .HasForeignKey(x => x.IntercompanyEntityId).OnDelete(DeleteBehavior.Restrict);
+
+            // Amounts are always positive; the side is Direction, not the sign. Allowing a
+            // negative debit would make every balance query ambiguous.
+            e.ToTable(t => t.HasCheckConstraint("ck_posting_amount_positive", "amount > 0"));
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_posting_functional_amount_positive", "functional_amount > 0"));
+            e.ToTable(t => t.HasCheckConstraint("ck_posting_fx_rate_positive", "fx_rate > 0"));
         });
     }
 }
