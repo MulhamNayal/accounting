@@ -25,6 +25,8 @@ import {
   BuildingBankRegular,
   DocumentTableFilled,
   DocumentTableRegular,
+  ScalesFilled,
+  ScalesRegular,
   SettingsFilled,
   SettingsRegular,
   bundleIcon,
@@ -39,6 +41,7 @@ import { HEADER_HEIGHT } from '../theme'
 const EntitiesIcon = bundleIcon(BuildingBankFilled, BuildingBankRegular)
 const AccountsIcon = bundleIcon(BookOpenFilled, BookOpenRegular)
 const JournalsIcon = bundleIcon(DocumentTableFilled, DocumentTableRegular)
+const ScalesIcon = bundleIcon(ScalesFilled, ScalesRegular)
 const SettingsIcon = bundleIcon(SettingsFilled, SettingsRegular)
 
 const useStyles = makeStyles({
@@ -73,6 +76,7 @@ const NAV_ITEMS = [
   { path: '/entities', label: 'Entities', icon: <EntitiesIcon /> },
   { path: '/accounts', label: 'Chart of accounts', icon: <AccountsIcon /> },
   { path: '/journals', label: 'Journals', icon: <JournalsIcon /> },
+  { path: '/trial-balance', label: 'Trial balance', icon: <ScalesIcon /> },
 ]
 
 export interface AppShellProps {

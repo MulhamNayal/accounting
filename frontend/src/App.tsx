@@ -17,7 +17,9 @@ import type { LegalEntitySummary } from './api/entities'
 import { AppShell } from './components/AppShell'
 import { ChartOfAccountsPage } from './pages/ChartOfAccountsPage'
 import { EntitiesPage } from './pages/EntitiesPage'
+import { JournalsPage } from './pages/JournalsPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
+import { TrialBalancePage } from './pages/TrialBalancePage'
 
 const useStyles = makeStyles({
   centre: {
@@ -109,16 +111,8 @@ function App() {
           <Route path="/" element={<Navigate to="/entities" replace />} />
           <Route path="/entities" element={<EntitiesPage entities={entities} />} />
           <Route path="/accounts" element={<ChartOfAccountsPage />} />
-          <Route
-            path="/journals"
-            element={
-              <PlaceholderPage title="Journals" layer="Layer 1">
-                The posting core: immutable journal entries and postings, with debits and
-                credits proven equal by the database at commit time. Corrections will appear
-                here as reversal and replacement pairs rather than edits.
-              </PlaceholderPage>
-            }
-          />
+          <Route path="/journals" element={<JournalsPage entityId={selectedEntityId} />} />
+          <Route path="/trial-balance" element={<TrialBalancePage entityId={selectedEntityId} />} />
           <Route
             path="/settings"
             element={
