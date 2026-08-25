@@ -1,5 +1,6 @@
 using ClearWise.Api.Data;
 using ClearWise.Api.Middleware;
+using ClearWise.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,7 +17,13 @@ builder.Services.AddCors(options => options.AddPolicy(DevCorsPolicy, policy =>
 // Scoped: the tenant is resolved per request, and the interceptor reads it whenever a
 // connection opens.
 builder.Services.AddScoped<ITenantContext, TenantContext>();
+builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<TenantConnectionInterceptor>();
+builder.Services.AddScoped<IPostingService, PostingService>();
+
+// Controllers never catch. Exception type maps to status code in one place.
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 builder.Services.AddDbContext<ClearWiseDbContext>((serviceProvider, options) =>
 {
@@ -34,6 +41,8 @@ builder.Services.AddDbContext<ClearWiseDbContext>((serviceProvider, options) =>
 });
 
 var app = builder.Build();
+
+app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {

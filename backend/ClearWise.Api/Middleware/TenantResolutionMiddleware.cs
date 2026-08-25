@@ -22,7 +22,8 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next, IWebHostEnv
 {
     public const string TenantHeader = "X-Tenant-Id";
 
-    public async Task InvokeAsync(HttpContext context, ITenantContext tenantContext)
+    public async Task InvokeAsync(
+        HttpContext context, ITenantContext tenantContext, ICurrentUser currentUser)
     {
         if (environment.IsDevelopment())
         {
@@ -34,6 +35,10 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next, IWebHostEnv
             else
             {
                 tenantContext.SetTenant(DevDataSeeder.DemoTenantId);
+                // Only the demo tenant has a known user. A caller naming some other tenant
+                // gets no acting user, so posting fails rather than attributing entries to
+                // somebody from a different tenant.
+                currentUser.SetUser(DevDataSeeder.DemoUserId);
             }
         }
 

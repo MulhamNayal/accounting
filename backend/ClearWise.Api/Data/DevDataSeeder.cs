@@ -17,6 +17,9 @@ public static class DevDataSeeder
     /// <summary>Fixed so the frontend can address the demo tenant without a login.</summary>
     public static readonly Guid DemoTenantId = Guid.Parse("0195c0de-0000-4000-8000-000000000001");
 
+    /// <summary>Stands in for an authenticated principal until authentication exists.</summary>
+    public static readonly Guid DemoUserId = Guid.Parse("0195c0de-0000-4000-8000-000000000002");
+
     public static async Task SeedAsync(IServiceProvider services, CancellationToken cancellationToken = default)
     {
         using var scope = services.CreateScope();
@@ -26,6 +29,39 @@ public static class DevDataSeeder
 
         var db = scope.ServiceProvider.GetRequiredService<ClearWiseDbContext>();
 
+        // Each block guards itself rather than the whole method, so a database seeded by an
+        // earlier version still picks up what was added since.
+        await SeedTenantAsync(db, cancellationToken);
+        await SeedUserAsync(db, cancellationToken);
+        await SeedCalendarAsync(db, cancellationToken);
+    }
+
+    /// <summary>
+    /// The user every posted entry is attributed to until authentication exists. Guarded
+    /// separately from the tenant, because a database seeded before this existed still
+    /// needs it — every journal entry has a foreign key to it.
+    /// </summary>
+    private static async Task SeedUserAsync(ClearWiseDbContext db, CancellationToken cancellationToken)
+    {
+        if (await db.Users.AnyAsync(u => u.Id == DemoUserId, cancellationToken))
+        {
+            return;
+        }
+
+        db.Users.Add(new AppUser
+        {
+            Id = DemoUserId,
+            TenantId = DemoTenantId,
+            Email = "demo@clearwise.test",
+            DisplayName = "Demo User",
+            CreatedAtUtc = DateTimeOffset.UtcNow,
+        });
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private static async Task SeedTenantAsync(ClearWiseDbContext db, CancellationToken cancellationToken)
+    {
         if (await db.Tenants.AnyAsync(t => t.Id == DemoTenantId, cancellationToken))
         {
             return;
@@ -80,6 +116,55 @@ public static class DevDataSeeder
                     LegalEntityId = entity.Id,
                     AccountId = account.Id,
                     IsActive = true,
+                });
+            }
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// A fiscal year and twelve monthly periods per entity, so entries can actually be
+    /// posted. Nothing posts without an open period covering its date.
+    /// </summary>
+    private static async Task SeedCalendarAsync(ClearWiseDbContext db, CancellationToken cancellationToken)
+    {
+        var year = DateTime.UtcNow.Year;
+        var entities = await db.LegalEntities.ToListAsync(cancellationToken);
+
+        foreach (var entity in entities)
+        {
+            if (await db.FiscalYears.AnyAsync(
+                    f => f.LegalEntityId == entity.Id && f.Code == $"FY{year}", cancellationToken))
+            {
+                continue;
+            }
+
+            var fiscalYearId = Guid.NewGuid();
+
+            db.FiscalYears.Add(new FiscalYear
+            {
+                Id = fiscalYearId,
+                TenantId = DemoTenantId,
+                LegalEntityId = entity.Id,
+                Code = $"FY{year}",
+                StartDate = new DateOnly(year, 1, 1),
+                EndDate = new DateOnly(year, 12, 31),
+                State = PeriodState.Open,
+            });
+
+            for (var month = 1; month <= 12; month++)
+            {
+                db.Periods.Add(new AccountingPeriod
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = DemoTenantId,
+                    LegalEntityId = entity.Id,
+                    FiscalYearId = fiscalYearId,
+                    Sequence = month,
+                    StartDate = new DateOnly(year, month, 1),
+                    EndDate = new DateOnly(year, month, DateTime.DaysInMonth(year, month)),
+                    State = PeriodState.Open,
                 });
             }
         }
