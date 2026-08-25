@@ -17,11 +17,13 @@ import {
   tokens,
 } from '@fluentui/react-components'
 import { AddRegular, DeleteRegular } from '@fluentui/react-icons'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { AccountSummary } from '../api/accounts'
 import { formatMoney } from '../api/journalEntries'
 import { createSalesInvoice } from '../api/salesInvoices'
 import type { CustomerSummary } from '../api/salesInvoices'
+import { getTaxCodes } from '../api/tax'
+import type { TaxCodeSummary } from '../api/tax'
 
 const useStyles = makeStyles({
   form: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM },
@@ -42,9 +44,17 @@ interface DraftLine {
   quantity: string
   unitPrice: string
   revenueAccountId: string
+  /** Empty means outside the tax regime, which is not the same as a zero-rated code. */
+  taxCodeId: string
 }
 
-const EMPTY: DraftLine = { description: '', quantity: '1', unitPrice: '', revenueAccountId: '' }
+const EMPTY: DraftLine = {
+  description: '',
+  quantity: '1',
+  unitPrice: '',
+  revenueAccountId: '',
+  taxCodeId: '',
+}
 
 export function NewInvoiceDialog({ open, onOpenChange, entityId, customers, accounts, onCreated }: {
   open: boolean
@@ -70,10 +80,30 @@ export function NewInvoiceDialog({ open, onOpenChange, entityId, customers, acco
 
   const customer = customers.find((c) => c.id === customerId)
 
-  const total = useMemo(
-    () => lines.reduce((sum, l) => sum + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0), 0),
-    [lines],
-  )
+  // Codes are fetched for the document's date, not today: back-dating into a period when a
+  // different regime was in force must offer that regime's codes.
+  const [taxCodes, setTaxCodes] = useState<TaxCodeSummary[]>([])
+
+  useEffect(() => {
+    getTaxCodes(docDate)
+      .then(setTaxCodes)
+      .catch(() => setTaxCodes([]))
+  }, [docDate])
+
+  const totals = useMemo(() => {
+    let net = 0
+    let tax = 0
+    for (const line of lines) {
+      const lineNet = (Number(line.quantity) || 0) * (Number(line.unitPrice) || 0)
+      net += lineNet
+      const code = taxCodes.find((c) => c.id === line.taxCodeId)
+      if (code) {
+        // Rounded per line, matching the server, so the figure shown is the figure posted.
+        tax += Math.round(((lineNet * code.rate) / 100) * 100) / 100
+      }
+    }
+    return { net, tax, gross: net + tax }
+  }, [lines, taxCodes])
 
   const update = (index: number, patch: Partial<DraftLine>) =>
     setLines((current) => current.map((l, i) => (i === index ? { ...l, ...patch } : l)))
@@ -99,6 +129,7 @@ export function NewInvoiceDialog({ open, onOpenChange, entityId, customers, acco
           quantity: Number(l.quantity),
           unitPrice: Number(l.unitPrice),
           revenueAccountId: l.revenueAccountId,
+          taxCodeId: l.taxCodeId || undefined,
         })),
       })
       setLines([{ ...EMPTY }])
@@ -193,6 +224,27 @@ export function NewInvoiceDialog({ open, onOpenChange, entityId, customers, acco
                       ))}
                     </Dropdown>
                   </Field>
+                  <Field label={index === 0 ? 'Tax' : undefined} className={styles.narrow}>
+                    <Dropdown
+                      placeholder="None"
+                      value={
+                        taxCodes.find((c) => c.id === line.taxCodeId)
+                          ? `${taxCodes.find((c) => c.id === line.taxCodeId)!.code} ${taxCodes.find((c) => c.id === line.taxCodeId)!.rate}%`
+                          : 'None'
+                      }
+                      selectedOptions={line.taxCodeId ? [line.taxCodeId] : ['']}
+                      onOptionSelect={(_, d) => update(index, { taxCodeId: d.optionValue ?? '' })}
+                    >
+                      {/* Distinct from a zero-rated code: this line is outside the regime. */}
+                      <Option value="" text="None">None (outside the regime)</Option>
+                      {taxCodes.map((c) => (
+                        <Option key={c.id} value={c.id} text={`${c.code} ${c.rate}%`}>
+                          {c.code} — {c.name} ({c.rate}%)
+                        </Option>
+                      ))}
+                    </Dropdown>
+                  </Field>
+
                   <Field label={index === 0 ? 'Qty' : undefined} className={styles.narrow}>
                     <Input
                       type="number"
@@ -227,9 +279,10 @@ export function NewInvoiceDialog({ open, onOpenChange, entityId, customers, acco
               </Button>
 
               <div className={styles.total}>
-                <Text>Total</Text>
+                <Text>Net {formatMoney(totals.net)}</Text>
+                <Text>Tax {formatMoney(totals.tax)}</Text>
                 <Text weight="semibold">
-                  {customer?.currencyCode ?? ''} {formatMoney(total)}
+                  Total {customer?.currencyCode ?? ''} {formatMoney(totals.gross)}
                 </Text>
               </div>
             </div>

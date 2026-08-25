@@ -156,6 +156,8 @@ export function InvoicesPage({ entityId }: { entityId: string | null }) {
                 <TableHeaderCell>Date</TableHeaderCell>
                 <TableHeaderCell>Customer</TableHeaderCell>
                 <TableHeaderCell>Due</TableHeaderCell>
+                <TableHeaderCell className={styles.right}>Net</TableHeaderCell>
+                <TableHeaderCell className={styles.right}>Tax</TableHeaderCell>
                 <TableHeaderCell className={styles.right}>Total</TableHeaderCell>
                 <TableHeaderCell>State</TableHeaderCell>
                 <TableHeaderCell />
@@ -164,7 +166,7 @@ export function InvoicesPage({ entityId }: { entityId: string | null }) {
             <TableBody>
               {invoices.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8}>
+                  <TableCell colSpan={10}>
                     <Caption1 className={layout.subtle}>
                       No invoices yet. Create one with “New invoice”.
                     </Caption1>
@@ -191,7 +193,13 @@ export function InvoicesPage({ entityId }: { entityId: string | null }) {
                     <TableCell>{invoice.customerName}</TableCell>
                     <TableCell>{invoice.dueDate}</TableCell>
                     <TableCell className={`${styles.right} ${styles.mono}`}>
-                      {invoice.currencyCode} {formatMoney(invoice.total)}
+                      {formatMoney(invoice.total)}
+                    </TableCell>
+                    <TableCell className={`${styles.right} ${styles.mono}`}>
+                      {invoice.taxTotal ? formatMoney(invoice.taxTotal) : ''}
+                    </TableCell>
+                    <TableCell className={`${styles.right} ${styles.mono}`}>
+                      {invoice.currencyCode} {formatMoney(invoice.totalWithTax)}
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -236,8 +244,14 @@ export function InvoicesPage({ entityId }: { entityId: string | null }) {
                       <TableCell className={`${styles.right} ${styles.mono}`}>
                         {formatMoney(line.lineTotal)}
                       </TableCell>
-                      <TableCell colSpan={2}>
-                        <Caption1 className={layout.subtle}>{line.revenueAccountName}</Caption1>
+                      <TableCell className={`${styles.right} ${styles.mono}`}>
+                        {line.taxAmount ? formatMoney(line.taxAmount) : ''}
+                      </TableCell>
+                      <TableCell colSpan={3}>
+                        <Caption1 className={layout.subtle}>
+                          {line.revenueAccountName}
+                          {line.taxCodeName && ` · ${line.taxCodeName}`}
+                        </Caption1>
                       </TableCell>
                     </TableRow>
                   ))}

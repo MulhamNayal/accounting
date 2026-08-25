@@ -18,7 +18,11 @@ export interface SalesInvoiceSummary {
   dueDate: string
   customerName: string
   currencyCode: string
+  /** Net of tax. */
   total: number
+  taxTotal: number
+  /** What the customer owes — the figure that matters for settlement. */
+  totalWithTax: number
   state: 'Draft' | 'Posted'
   journalEntryId: string | null
 }
@@ -33,6 +37,11 @@ export interface SalesInvoiceLineDetail {
   revenueAccountId: string
   revenueAccountCode: string
   revenueAccountName: string
+  /** Null means outside the tax regime — not the same as zero-rated. */
+  taxCodeId: string | null
+  taxCodeName: string | null
+  taxRate: number
+  taxAmount: number
 }
 
 export interface SalesInvoiceDetail {
@@ -50,6 +59,8 @@ export interface SalesInvoiceDetail {
   state: 'Draft' | 'Posted'
   journalEntryId: string | null
   total: number
+  taxTotal: number
+  totalWithTax: number
   lines: SalesInvoiceLineDetail[]
 }
 
@@ -58,6 +69,7 @@ export interface CreateSalesInvoiceLineRequest {
   quantity: number
   unitPrice: number
   revenueAccountId: string
+  taxCodeId?: string
 }
 
 export interface CreateSalesInvoiceRequest {
