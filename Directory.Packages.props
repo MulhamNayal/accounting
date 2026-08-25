@@ -1,0 +1,40 @@
+<Project>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!--
+      Pins transitive dependencies too. Without this, Npgsql pulls EF Core 10.0.4 while
+      EntityFrameworkCore.Design pulls 10.0.11, and the two projects resolve different
+      assembly versions - which fails the build with CS1705 rather than failing at runtime,
+      but only because a project reference happens to cross the boundary.
+    -->
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup Label="Entity Framework Core">
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Abstractions" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageVersion Include="EFCore.NamingConventions" Version="10.0.1" />
+  </ItemGroup>
+
+  <ItemGroup Label="ASP.NET Core">
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+    <!--
+      Held on 2.x deliberately. Microsoft.OpenApi 3.x made IOpenApiMediaType.Example
+      read-only, which breaks the ASP.NET Core OpenAPI source generator shipped with
+      10.0.10. 2.12.2 is the latest 2.x and carries no known advisory.
+    -->
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.12.2" />
+  </ItemGroup>
+
+  <ItemGroup Label="Testing">
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+  </ItemGroup>
+
+</Project>

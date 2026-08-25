@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/ClearWise.Api/ClearWise.Api.csproj" />
+    <Project Path="backend/ClearWise.Tests/ClearWise.Tests.csproj" />
+  </Folder>
+</Solution>
