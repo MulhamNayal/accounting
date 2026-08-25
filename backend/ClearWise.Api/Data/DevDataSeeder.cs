@@ -139,27 +139,44 @@ public static class DevDataSeeder
     private static async Task BackfillSystemRolesAsync(
         ClearWiseDbContext db, CancellationToken cancellationToken)
     {
-        (string Code, AccountSystemRole Role)[] roles =
+        (string Code, string Name, AccountType Type, AccountSystemRole Role)[] roles =
         [
-            ("4900", AccountSystemRole.RealisedFxGainLoss),
-            ("4910", AccountSystemRole.UnrealisedFxGainLoss),
-            ("3020", AccountSystemRole.RetainedEarnings),
+            ("4900", "Realised Foreign Exchange Gain/Loss", AccountType.Income,
+                AccountSystemRole.RealisedFxGainLoss),
+            ("4910", "Unrealised Foreign Exchange Gain/Loss", AccountType.Income,
+                AccountSystemRole.UnrealisedFxGainLoss),
+            ("3020", "Retained Earnings", AccountType.Equity,
+                AccountSystemRole.RetainedEarnings),
+            ("3030", "Currency Translation Reserve", AccountType.Equity,
+                AccountSystemRole.CurrencyTranslationReserve),
         ];
 
+        var tenantId = DemoTenantId;
         var changed = false;
 
-        foreach (var (code, role) in roles)
+        foreach (var (code, name, type, role) in roles)
         {
-            var alreadySet = await db.Accounts.AnyAsync(a => a.SystemRole == role, cancellationToken);
-            if (alreadySet)
+            if (await db.Accounts.AnyAsync(a => a.SystemRole == role, cancellationToken))
             {
                 continue;
             }
 
             var account = await db.Accounts.FirstOrDefaultAsync(a => a.Code == code, cancellationToken);
+
             if (account is null)
             {
-                continue;
+                // A role added after the chart was first seeded has no account to mark, so
+                // one is created. Only reachable in a development database that predates the
+                // role; a real chart is the customer's to define.
+                account = new Account
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = tenantId,
+                    Code = code,
+                    Name = name,
+                    AccountType = type,
+                };
+                db.Accounts.Add(account);
             }
 
             account.SystemRole = role;
@@ -460,6 +477,10 @@ public static class DevDataSeeder
         Add("3010", "Share Capital", AccountType.Equity, equity);
         Add("3020", "Retained Earnings", AccountType.Equity, equity,
             role: AccountSystemRole.RetainedEarnings);
+        // Consolidating entities with different functional currencies cannot balance, and the
+        // residue belongs in equity rather than profit. Without this account the run refuses.
+        Add("3030", "Currency Translation Reserve", AccountType.Equity, equity,
+            role: AccountSystemRole.CurrencyTranslationReserve);
 
         var revenue = Add("4000", "Revenue", AccountType.Income, postable: false);
         Add("4010", "Sales", AccountType.Income, revenue);
