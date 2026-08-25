@@ -16,7 +16,8 @@ public sealed record LedgerWorld(
     Guid CashAccountId,
     Guid SalesAccountId,
     Guid ReceivablesAccountId,
-    Guid HeadingAccountId)
+    Guid HeadingAccountId,
+    Guid CustomerId)
 {
     public ITenantContext Context()
     {
@@ -141,11 +142,23 @@ public static class LedgerFixture
             IsDefault = true,
         });
 
+        var customerId = Guid.NewGuid();
+        db.Customers.Add(new Customer
+        {
+            Id = customerId,
+            TenantId = tenantId,
+            Code = "C0001",
+            Name = "Test Customer",
+            CurrencyCode = "MYR",
+            CreditTermDays = 30,
+            CreatedAtUtc = now,
+        });
+
         await db.SaveChangesAsync();
 
         return new LedgerWorld(
             tenantId, entityId, userId, openPeriodId, closedPeriodId,
-            cash.Id, sales.Id, receivables.Id, heading.Id);
+            cash.Id, sales.Id, receivables.Id, heading.Id, customerId);
     }
 
     private static Account NewAccount(

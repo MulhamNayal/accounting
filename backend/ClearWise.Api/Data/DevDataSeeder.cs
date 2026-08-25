@@ -35,6 +35,40 @@ public static class DevDataSeeder
         await SeedUserAsync(db, cancellationToken);
         await SeedCalendarAsync(db, cancellationToken);
         await SeedNumberSeriesAsync(db, cancellationToken);
+        await SeedCustomersAsync(db, cancellationToken);
+    }
+
+    private static async Task SeedCustomersAsync(
+        ClearWiseDbContext db, CancellationToken cancellationToken)
+    {
+        if (await db.Customers.AnyAsync(cancellationToken))
+        {
+            return;
+        }
+
+        (string Code, string Name, string Currency, int Terms)[] customers =
+        [
+            ("C0001", "Anggun Properties Sdn Bhd", "MYR", 30),
+            ("C0002", "Bayu Ventures Sdn Bhd", "MYR", 14),
+            ("C0003", "Cendana Retail Sdn Bhd", "MYR", 60),
+            ("C0004", "Overseas Holdings Pte Ltd", "SGD", 30),
+        ];
+
+        foreach (var (code, name, currency, terms) in customers)
+        {
+            db.Customers.Add(new Customer
+            {
+                Id = Guid.NewGuid(),
+                TenantId = DemoTenantId,
+                Code = code,
+                Name = name,
+                CurrencyCode = currency,
+                CreditTermDays = terms,
+                CreatedAtUtc = DateTimeOffset.UtcNow,
+            });
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>

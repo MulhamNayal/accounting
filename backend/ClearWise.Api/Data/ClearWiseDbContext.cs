@@ -17,6 +17,9 @@ public class ClearWiseDbContext(DbContextOptions<ClearWiseDbContext> options) : 
     public DbSet<Posting> Postings => Set<Posting>();
     public DbSet<NumberSeries> NumberSeries => Set<NumberSeries>();
     public DbSet<NumberCounter> NumberCounters => Set<NumberCounter>();
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<SalesInvoice> SalesInvoices => Set<SalesInvoice>();
+    public DbSet<SalesInvoiceLine> SalesInvoiceLines => Set<SalesInvoiceLine>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -120,6 +123,82 @@ public class ClearWiseDbContext(DbContextOptions<ClearWiseDbContext> options) : 
 
         ConfigureLedger(builder);
         ConfigureNumbering(builder);
+        ConfigureSales(builder);
+    }
+
+    private static void ConfigureSales(ModelBuilder builder)
+    {
+        builder.Entity<Customer>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(30).IsRequired();
+            e.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            e.Property(x => x.RegistrationNo).HasMaxLength(50);
+            e.Property(x => x.TaxId).HasMaxLength(50);
+            e.Property(x => x.Email).HasMaxLength(320);
+            e.Property(x => x.Phone).HasMaxLength(40);
+            e.Property(x => x.BillingAddress).HasMaxLength(500);
+            e.Property(x => x.CurrencyCode).HasMaxLength(3).IsFixedLength().IsRequired();
+
+            // Tenant-wide, not per entity: one record for a client both companies bill.
+            e.HasIndex(x => new { x.TenantId, x.Code }).IsUnique();
+
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_customer_credit_terms", "credit_term_days >= 0"));
+        });
+
+        builder.Entity<SalesInvoice>(e =>
+        {
+            e.Property(x => x.DocNo).HasMaxLength(40);
+            e.Property(x => x.CurrencyCode).HasMaxLength(3).IsFixedLength().IsRequired();
+            e.Property(x => x.FxRate).HasPrecision(19, 10);
+            e.Property(x => x.Reference).HasMaxLength(80);
+            e.Property(x => x.Memo).HasMaxLength(500);
+            e.Property(x => x.State).HasConversion<string>().HasMaxLength(20);
+
+            // Unique only where present: drafts have no number yet, and several may exist.
+            e.HasIndex(x => new { x.LegalEntityId, x.DocNo })
+                .IsUnique()
+                .HasFilter("doc_no IS NOT NULL");
+            e.HasIndex(x => new { x.LegalEntityId, x.DocDate });
+            e.HasIndex(x => x.CustomerId);
+
+            e.HasOne(x => x.LegalEntity).WithMany()
+                .HasForeignKey(x => x.LegalEntityId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Customer).WithMany()
+                .HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.JournalEntry).WithMany()
+                .HasForeignKey(x => x.JournalEntryId).OnDelete(DeleteBehavior.Restrict);
+
+            e.Ignore(x => x.Total);
+
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_sales_invoice_due_after_doc", "due_date >= doc_date"));
+
+            // A posted invoice must have both a number and an entry; a draft neither.
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_sales_invoice_posted_is_complete",
+                "(state = 'Draft' AND doc_no IS NULL AND journal_entry_id IS NULL) "
+                + "OR (state = 'Posted' AND doc_no IS NOT NULL AND journal_entry_id IS NOT NULL)"));
+        });
+
+        builder.Entity<SalesInvoiceLine>(e =>
+        {
+            e.Property(x => x.Description).HasMaxLength(500).IsRequired();
+            e.Property(x => x.Quantity).HasPrecision(19, 4);
+            e.Property(x => x.UnitPrice).HasPrecision(19, 4);
+
+            e.HasIndex(x => new { x.SalesInvoiceId, x.LineNo }).IsUnique();
+
+            e.HasOne(x => x.SalesInvoice).WithMany(x => x.Lines)
+                .HasForeignKey(x => x.SalesInvoiceId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.RevenueAccount).WithMany()
+                .HasForeignKey(x => x.RevenueAccountId).OnDelete(DeleteBehavior.Restrict);
+
+            e.Ignore(x => x.LineTotal);
+
+            e.ToTable(t => t.HasCheckConstraint("ck_invoice_line_quantity", "quantity > 0"));
+            e.ToTable(t => t.HasCheckConstraint("ck_invoice_line_price", "unit_price > 0"));
+        });
     }
 
     private static void ConfigureNumbering(ModelBuilder builder)

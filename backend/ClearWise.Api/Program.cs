@@ -21,6 +21,10 @@ builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<TenantConnectionInterceptor>();
 builder.Services.AddScoped<INumberSeriesService, NumberSeriesService>();
 builder.Services.AddScoped<IPostingService, PostingService>();
+builder.Services.AddScoped<ISalesInvoiceService, SalesInvoiceService>();
+
+// Posting rules are stateless pure functions from document to posting set.
+builder.Services.AddSingleton<SalesInvoicePostingRule>();
 
 // Controllers never catch. Exception type maps to status code in one place.
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();

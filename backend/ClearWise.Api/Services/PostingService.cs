@@ -72,7 +72,7 @@ public sealed class PostingService(
         // One transaction spans number allocation and the write. The counter row stays
         // locked until commit, so a rolled-back post returns its number rather than burning
         // it — which is the whole point of a gapless series.
-        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        await using var scope = await BeginOrJoinAsync(ct);
 
         var entry = new JournalEntry
         {
@@ -104,7 +104,7 @@ public sealed class PostingService(
         }
 
         db.JournalEntries.Add(entry);
-        await SaveAndCommitAsync(transaction, ct);
+        await SaveAndCommitAsync(scope, ct);
 
         logger.LogInformation(
             "Posted {EntryNo} for entity {Entity} with {Lines} lines",
@@ -144,7 +144,7 @@ public sealed class PostingService(
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var period = await ResolvePeriodAsync(original.LegalEntityId, today, ct);
 
-        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        await using var scope = await BeginOrJoinAsync(ct);
 
         var reversal = new JournalEntry
         {
@@ -198,7 +198,7 @@ public sealed class PostingService(
         }
 
         db.JournalEntries.Add(reversal);
-        await SaveAndCommitAsync(transaction, ct);
+        await SaveAndCommitAsync(scope, ct);
 
         return await GetAsync(reversal.Id, ct);
     }
@@ -421,6 +421,34 @@ public sealed class PostingService(
     }
 
     /// <summary>
+    /// Joins the caller's transaction if there is one, otherwise starts and owns a new one.
+    /// </summary>
+    /// <remarks>
+    /// A document service needs the entry and its own "posted" flag written atomically —
+    /// a journal entry with no document pointing at it, or a document marked posted with no
+    /// entry behind it, are both worse than a clean failure. So when a caller has already
+    /// opened a transaction this joins it and leaves the commit to them.
+    /// </remarks>
+    private async Task<LedgerTransactionScope> BeginOrJoinAsync(CancellationToken ct)
+    {
+        var ambient = db.Database.CurrentTransaction;
+
+        return ambient is not null
+            ? new LedgerTransactionScope(ambient, owned: false)
+            : new LedgerTransactionScope(await db.Database.BeginTransactionAsync(ct), owned: true);
+    }
+
+    private sealed class LedgerTransactionScope(IDbContextTransaction transaction, bool owned)
+        : IAsyncDisposable
+    {
+        public Task CommitAsync(CancellationToken ct) =>
+            owned ? transaction.CommitAsync(ct) : Task.CompletedTask;
+
+        public ValueTask DisposeAsync() =>
+            owned ? transaction.DisposeAsync() : ValueTask.CompletedTask;
+    }
+
+    /// <summary>
     /// Writes the entry and commits, translating a database refusal into something readable.
     /// </summary>
     /// <remarks>
@@ -432,12 +460,12 @@ public sealed class PostingService(
     /// caught — a race, or a rule enforced in only one place. Worth surfacing distinctly.
     /// </para>
     /// </remarks>
-    private async Task SaveAndCommitAsync(IDbContextTransaction transaction, CancellationToken ct)
+    private async Task SaveAndCommitAsync(LedgerTransactionScope scope, CancellationToken ct)
     {
         try
         {
             await db.SaveChangesAsync(ct);
-            await transaction.CommitAsync(ct);
+            await scope.CommitAsync(ct);
         }
         catch (Exception ex) when (ex.GetBaseException() is PostgresException pg)
         {

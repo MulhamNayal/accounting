@@ -1,0 +1,68 @@
+namespace ClearWise.Api.Services;
+
+public record CreateSalesInvoiceRequest(
+    Guid LegalEntityId,
+    Guid CustomerId,
+    DateOnly DocDate,
+    IReadOnlyList<CreateSalesInvoiceLineRequest> Lines,
+    DateOnly? DueDate = null,
+    string? CurrencyCode = null,
+    decimal? FxRate = null,
+    string? Reference = null,
+    string? Memo = null);
+
+public record CreateSalesInvoiceLineRequest(
+    string Description,
+    decimal Quantity,
+    decimal UnitPrice,
+    Guid RevenueAccountId,
+    Guid? ProjectId = null,
+    Guid? AgentId = null);
+
+public record SalesInvoiceSummary(
+    Guid Id,
+    string? DocNo,
+    DateOnly DocDate,
+    DateOnly DueDate,
+    string CustomerName,
+    string CurrencyCode,
+    decimal Total,
+    string State,
+    Guid? JournalEntryId);
+
+public record SalesInvoiceDetail(
+    Guid Id,
+    string? DocNo,
+    DateOnly DocDate,
+    DateOnly DueDate,
+    Guid CustomerId,
+    string CustomerCode,
+    string CustomerName,
+    string CurrencyCode,
+    decimal FxRate,
+    string? Reference,
+    string? Memo,
+    string State,
+    Guid? JournalEntryId,
+    decimal Total,
+    IReadOnlyList<SalesInvoiceLineDetail> Lines);
+
+public record SalesInvoiceLineDetail(
+    Guid Id,
+    int LineNo,
+    string Description,
+    decimal Quantity,
+    decimal UnitPrice,
+    decimal LineTotal,
+    Guid RevenueAccountId,
+    string RevenueAccountCode,
+    string RevenueAccountName);
+
+public record CustomerSummary(
+    Guid Id,
+    string Code,
+    string Name,
+    string? TaxId,
+    string CurrencyCode,
+    int CreditTermDays,
+    bool IsActive);
