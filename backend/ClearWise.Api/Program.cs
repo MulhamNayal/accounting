@@ -1,10 +1,17 @@
 using ClearWise.Api.Data;
+using ClearWise.Api.Middleware;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+
+const string DevCorsPolicy = "DevFrontend";
+builder.Services.AddCors(options => options.AddPolicy(DevCorsPolicy, policy =>
+    policy.WithOrigins("http://localhost:5173")
+          .AllowAnyHeader()
+          .AllowAnyMethod()));
 
 // Scoped: the tenant is resolved per request, and the interceptor reads it whenever a
 // connection opens.
@@ -31,9 +38,15 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseCors(DevCorsPolicy);
+
+    // Migrations are NOT applied at startup - they run as the owner role, ahead of deploy.
+    // Only demonstration data is seeded here, and only in Development.
+    await DevDataSeeder.SeedAsync(app.Services);
 }
 
 app.UseHttpsRedirection();
+app.UseMiddleware<TenantResolutionMiddleware>();
 app.MapControllers();
 
 app.Run();
