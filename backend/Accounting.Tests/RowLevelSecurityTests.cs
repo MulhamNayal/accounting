@@ -117,10 +117,10 @@ public class RowLevelSecurityTests
         var canInsert = await ScalarBoolAsync(owner, "INSERT");
         var canSelect = await ScalarBoolAsync(owner, "SELECT");
 
-        Assert.False(canUpdate, "clearwise_app must not hold UPDATE on period_events");
-        Assert.False(canDelete, "clearwise_app must not hold DELETE on period_events");
-        Assert.True(canInsert, "clearwise_app must be able to append period events");
-        Assert.True(canSelect, "clearwise_app must be able to read period events");
+        Assert.False(canUpdate, "accounting_app must not hold UPDATE on period_events");
+        Assert.False(canDelete, "accounting_app must not hold DELETE on period_events");
+        Assert.True(canInsert, "accounting_app must be able to append period events");
+        Assert.True(canSelect, "accounting_app must be able to read period events");
     }
 
     private static async Task<bool> ScalarBoolAsync(AccountingDbContext context, string privilege)
@@ -128,7 +128,7 @@ public class RowLevelSecurityTests
         await context.Database.OpenConnectionAsync();
         await using var command = context.Database.GetDbConnection().CreateCommand();
         command.CommandText =
-            $"SELECT has_table_privilege('clearwise_app', 'period_events', '{privilege}')";
+            $"SELECT has_table_privilege('accounting_app', 'period_events', '{privilege}')";
         var result = await command.ExecuteScalarAsync();
         await context.Database.CloseConnectionAsync();
         return (bool)result!;

@@ -1,0 +1,98 @@
+name: Deploy
+
+# Push-to-main deploys. Deliberately NOT triggered by pull_request: this repository is
+# public, and a fork-triggered run would be handed the deployment secrets.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Publish backend
+        run: dotnet publish backend/Accounting.Api/Accounting.Api.csproj -c Release -o publish/app
+
+      # Generated from the Migrations folder on every deploy rather than committed, so it
+      # cannot drift from the migrations it is supposed to apply. --idempotent guards each
+      # migration on __EFMigrationsHistory, so it is safe against a database at any version.
+      - name: Generate migration script
+        env:
+          # The script never opens a connection, but the design-time context still has to be
+          # constructed and UseNpgsql wants a string.
+          ConnectionStrings__MigrationDatabase: "Host=localhost;Database=none;Username=none"
+        run: |
+          dotnet tool install --global dotnet-ef --version 10.*
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          mkdir -p publish/scripts/sql
+          dotnet ef migrations script --idempotent \
+            --project backend/Accounting.Api/Accounting.Api.csproj \
+            --output publish/scripts/sql/migrate-accounting.sql
+          test -s publish/scripts/sql/migrate-accounting.sql
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          # The IIS Application path. Every asset URL and the BASE_URL that api/client.ts
+          # resolves its requests against are baked in at build time, so this has to match
+          # the application name deploy-bootstrap.ps1 provisions.
+          VITE_BASE: /accounting/
+        run: |
+          npm ci
+          npm run build
+
+      - name: Assemble bundle
+        run: |
+          # Into the published app's wwwroot: the API serves the SPA itself, so the deployed
+          # product is a single IIS Application on a single origin.
+          mkdir -p publish/app/wwwroot
+          cp -r frontend/dist/. publish/app/wwwroot/
+          cp scripts/deploy-bootstrap.ps1 scripts/apply-migration.ps1 publish/scripts/
+          cd publish && zip -qr ../bundle.zip . && cd ..
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload bundle to S3 and generate presigned URL
+        id: upload
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+        run: |
+          aws s3 cp bundle.zip "s3://$S3_BUCKET/deploys/accounting/bundle.zip"
+          url=$(aws s3 presign "s3://$S3_BUCKET/deploys/accounting/bundle.zip" --expires-in 3600)
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy on EC2 via WinRM
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_PASS: ${{ secrets.EC2_PASS }}
+          IIS_SITE_NAME: ${{ secrets.IIS_SITE_NAME }}
+          # Application role: no DDL, and no UPDATE or DELETE on the ledger.
+          DB_CONNECTION_STRING: ${{ secrets.DB_CONNECTION_STRING }}
+          # Owner role: used only to apply migrations, never persisted on the box.
+          DB_MIGRATION_CONNECTION_STRING: ${{ secrets.DB_MIGRATION_CONNECTION_STRING }}
+          JWT_SIGNING_KEY: ${{ secrets.JWT_SIGNING_KEY }}
+          SEED_DEMO_PASSWORD: ${{ secrets.SEED_DEMO_PASSWORD }}
+          BUNDLE_URL: ${{ steps.upload.outputs.url }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          pip install pywinrm --quiet
+          python3 scripts/winrm_deploy.py

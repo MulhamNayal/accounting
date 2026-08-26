@@ -8,7 +8,7 @@ namespace Accounting.Api.Migrations
     /// The one deliberate, narrow bypass of row level security.
     /// </summary>
     /// <remarks>
-    /// Sign-in is the only operation that cannot already know its tenant â€” establishing it is
+    /// Sign-in is the only operation that cannot already know its tenant Ã¢â‚¬â€ establishing it is
     /// the point. RLS would therefore hide every user row and nobody could ever authenticate.
     /// <para>
     /// Rather than grant the application any broader reach, this function runs as its owner
@@ -23,7 +23,7 @@ namespace Accounting.Api.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql("""
-                CREATE OR REPLACE FUNCTION clearwise_resolve_login(p_email text)
+                CREATE OR REPLACE FUNCTION accounting_resolve_login(p_email text)
                 RETURNS TABLE (
                     id uuid,
                     tenant_id uuid,
@@ -51,9 +51,9 @@ namespace Accounting.Api.Migrations
             // Revoked from PUBLIC first: a SECURITY DEFINER function is executable by
             // everyone by default, which would hand the hash lookup to any role at all.
             migrationBuilder.Sql(
-                "REVOKE ALL ON FUNCTION clearwise_resolve_login(text) FROM PUBLIC;");
+                "REVOKE ALL ON FUNCTION accounting_resolve_login(text) FROM PUBLIC;");
             migrationBuilder.Sql(
-                "GRANT EXECUTE ON FUNCTION clearwise_resolve_login(text) TO clearwise_app;");
+                "GRANT EXECUTE ON FUNCTION accounting_resolve_login(text) TO accounting_app;");
 
             // Email must be unique per tenant already; this makes it unique globally, so the
             // lookup above can never be ambiguous about which account a sign-in refers to.
@@ -66,7 +66,7 @@ namespace Accounting.Api.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql("DROP INDEX IF EXISTS ix_users_email_lower;");
-            migrationBuilder.Sql("DROP FUNCTION IF EXISTS clearwise_resolve_login(text);");
+            migrationBuilder.Sql("DROP FUNCTION IF EXISTS accounting_resolve_login(text);");
         }
     }
 }

@@ -111,13 +111,28 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.UseCors(DevCorsPolicy);
+}
 
-    // Migrations are NOT applied at startup - they run as the owner role, ahead of deploy.
-    // Only demonstration data is seeded here, and only in Development.
-    await DevDataSeeder.SeedAsync(app.Services);
+// Migrations are NOT applied at startup - they run as the owner role, ahead of deploy.
+// Only demonstration data is seeded here.
+//
+// Gated on the password rather than on the environment: a deployed instance needs a way in
+// too, and this repository is public, so the credential has to come from configuration. No
+// password configured means no seeding, which is the right default for an instance that is
+// meant to hold real books.
+var seedPassword = builder.Configuration["Seed:DemoPassword"];
+if (!string.IsNullOrWhiteSpace(seedPassword))
+{
+    await DevDataSeeder.SeedAsync(app.Services, seedPassword);
 }
 
 app.UseHttpsRedirection();
+
+// The SPA is published into wwwroot and served by this app, so the whole product is one
+// origin and one IIS application. UseDefaultFiles maps "/" to index.html; MapFallbackToFile
+// below hands client-side routes to it as well.
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
 app.UseAuthentication();
 // Order matters: the tenant is read from the authenticated principal's claims, so this must
@@ -126,6 +141,15 @@ app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// An unmatched /api route has to stay a 404. Without this the fallback below would answer
+// it with index.html, and the client would report a JSON parse error instead of the 404 the
+// server actually meant. A catch-all parameter is the least specific route there is, so
+// every real controller action still wins.
+app.Map("/api/{**rest}", () => Results.NotFound());
+
+// Everything else that isn't a real file is a client-side route.
+app.MapFallbackToFile("index.html");
 
 app.Run();
 

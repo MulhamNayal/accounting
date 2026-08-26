@@ -8,7 +8,7 @@ public sealed class JwtOptions
     public const string SectionName = "Jwt";
 
     /// <summary>
-    /// Symmetric signing key. Must be at least 32 bytes â€” HMAC-SHA256 offers no more
+    /// Symmetric signing key. Must be at least 32 bytes Ã¢â‚¬â€ HMAC-SHA256 offers no more
     /// security than the key it is given, and a short key makes every token forgeable.
     /// </summary>
     /// <remarks>
@@ -18,9 +18,9 @@ public sealed class JwtOptions
     /// </remarks>
     public string SigningKey { get; set; } = string.Empty;
 
-    public string Issuer { get; set; } = "clearwise";
+    public string Issuer { get; set; } = "accounting";
 
-    public string Audience { get; set; } = "clearwise";
+    public string Audience { get; set; } = "accounting";
 
     /// <summary>
     /// Short by design. A JWT cannot be withdrawn once signed, so the window in which a

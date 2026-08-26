@@ -9,30 +9,30 @@ namespace Accounting.Tests;
 /// <remarks>
 /// Tests run against a real PostgreSQL instance, never an in-memory provider. Row level
 /// security, FORCE ROW LEVEL SECURITY and revoked privileges are precisely what is under
-/// test here, and no in-memory provider implements any of them â€” a suite that passed
+/// test here, and no in-memory provider implements any of them Ã¢â‚¬â€ a suite that passed
 /// against one would be actively misleading.
 /// <para>
 /// The fallback credentials below are local-development-only role names created by
-/// <c>docs/development.md</c>. Override with CLEARWISE_TEST_DB_OWNER and
-/// CLEARWISE_TEST_DB_APP on CI.
+/// <c>docs/development.md</c>. Override with ACCOUNTING_TEST_DB_OWNER and
+/// ACCOUNTING_TEST_DB_APP on CI.
 /// </para>
 /// </remarks>
 public static class TestDatabase
 {
     private const string DefaultOwner =
-        "Host=localhost;Port=5432;Database=clearwise_test;Username=clearwise_owner;Password=clearwise_owner";
+        "Host=localhost;Port=5432;Database=accounting_test;Username=accounting_owner;Password=accounting_owner";
 
     private const string DefaultApp =
-        "Host=localhost;Port=5432;Database=clearwise_test;Username=clearwise_app;Password=clearwise_app";
+        "Host=localhost;Port=5432;Database=accounting_test;Username=accounting_app;Password=accounting_app";
 
     public static string OwnerConnectionString =>
-        Environment.GetEnvironmentVariable("CLEARWISE_TEST_DB_OWNER") ?? DefaultOwner;
+        Environment.GetEnvironmentVariable("ACCOUNTING_TEST_DB_OWNER") ?? DefaultOwner;
 
     public static string AppConnectionString =>
-        Environment.GetEnvironmentVariable("CLEARWISE_TEST_DB_APP") ?? DefaultApp;
+        Environment.GetEnvironmentVariable("ACCOUNTING_TEST_DB_APP") ?? DefaultApp;
 
     /// <summary>
-    /// A context on the owner connection â€” schema work and arranging test data. No tenant
+    /// A context on the owner connection Ã¢â‚¬â€ schema work and arranging test data. No tenant
     /// interceptor, so the caller sets <c>app.current_tenant</c> explicitly.
     /// </summary>
     public static AccountingDbContext CreateOwnerContext() =>

@@ -29,17 +29,17 @@ namespace Accounting.Api.Migrations
             // The application role owns nothing and creates nothing. It gets exactly the
             // DML it needs, plus default privileges so tables added by later migrations
             // are covered without anyone having to remember this step.
-            migrationBuilder.Sql("GRANT USAGE ON SCHEMA public TO clearwise_app;");
+            migrationBuilder.Sql("GRANT USAGE ON SCHEMA public TO accounting_app;");
             migrationBuilder.Sql(
-                "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO clearwise_app;");
+                "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO accounting_app;");
             migrationBuilder.Sql(
-                "ALTER DEFAULT PRIVILEGES FOR ROLE clearwise_owner IN SCHEMA public "
-                + "GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO clearwise_app;");
+                "ALTER DEFAULT PRIVILEGES FOR ROLE accounting_owner IN SCHEMA public "
+                + "GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO accounting_app;");
 
             // period_events records who reopened a period and why. A trail the application
             // can rewrite is not a trail, so the privilege is removed rather than merely
             // left unused. Layer 1 applies this same mechanism to the ledger tables.
-            migrationBuilder.Sql("REVOKE UPDATE, DELETE ON period_events FROM clearwise_app;");
+            migrationBuilder.Sql("REVOKE UPDATE, DELETE ON period_events FROM accounting_app;");
 
             // tenants is keyed by the tenant id itself, so its policy filters on id.
             // Deliberately ENABLE without FORCE: provisioning a tenant is inherently a
@@ -80,14 +80,14 @@ namespace Accounting.Api.Migrations
             migrationBuilder.Sql("DROP POLICY IF EXISTS tenant_isolation ON tenants;");
             migrationBuilder.Sql("ALTER TABLE tenants DISABLE ROW LEVEL SECURITY;");
 
-            migrationBuilder.Sql("GRANT UPDATE, DELETE ON period_events TO clearwise_app;");
+            migrationBuilder.Sql("GRANT UPDATE, DELETE ON period_events TO accounting_app;");
             migrationBuilder.Sql(
-                "ALTER DEFAULT PRIVILEGES FOR ROLE clearwise_owner IN SCHEMA public "
-                + "REVOKE SELECT, INSERT, UPDATE, DELETE ON TABLES FROM clearwise_app;");
+                "ALTER DEFAULT PRIVILEGES FOR ROLE accounting_owner IN SCHEMA public "
+                + "REVOKE SELECT, INSERT, UPDATE, DELETE ON TABLES FROM accounting_app;");
             migrationBuilder.Sql(
                 "REVOKE SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public "
-                + "FROM clearwise_app;");
-            migrationBuilder.Sql("REVOKE USAGE ON SCHEMA public FROM clearwise_app;");
+                + "FROM accounting_app;");
+            migrationBuilder.Sql("REVOKE USAGE ON SCHEMA public FROM accounting_app;");
         }
     }
 }

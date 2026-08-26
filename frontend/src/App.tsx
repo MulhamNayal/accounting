@@ -43,7 +43,7 @@ const useStyles = makeStyles({
   },
 })
 
-const THEME_KEY = 'clearwise.theme'
+const THEME_KEY = 'accounting.theme'
 
 function App() {
   const styles = useStyles()
@@ -111,7 +111,7 @@ function App() {
     return (
       <FluentProvider theme={theme}>
         <div className={styles.centre}>
-          <Spinner label="Loading your books…" />
+          <Spinner label="Loading your booksâ€¦" />
         </div>
       </FluentProvider>
     )

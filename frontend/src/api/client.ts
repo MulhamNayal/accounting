@@ -29,8 +29,20 @@ function headers(extra?: Record<string, string>): Record<string, string> {
   }
 }
 
+/**
+ * Resolves an API path against the app's base path.
+ *
+ * In development the app is served from the origin root and this is a no-op. Deployed, it
+ * lives under a sub-path (`/accounting/`), where a root-relative `/api/...` would resolve
+ * to the wrong place entirely. Vite substitutes BASE_URL at build time.
+ */
+function resolve(path: string): string {
+  if (!path.startsWith('/')) return path
+  return import.meta.env.BASE_URL.replace(/\/$/, '') + path
+}
+
 export async function getJson<T>(path: string): Promise<T> {
-  const response = await fetch(path, { headers: headers() })
+  const response = await fetch(resolve(path), { headers: headers() })
 
   if (!response.ok) {
     throw new Error(await readError(response))
@@ -40,7 +52,7 @@ export async function getJson<T>(path: string): Promise<T> {
 }
 
 export async function postJson<T>(path: string, body: unknown): Promise<T> {
-  const response = await fetch(path, {
+  const response = await fetch(resolve(path), {
     method: 'POST',
     headers: headers({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(body),

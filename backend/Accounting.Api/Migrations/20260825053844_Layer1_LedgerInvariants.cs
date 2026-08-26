@@ -9,7 +9,7 @@ namespace Accounting.Api.Migrations
     /// rather than by application discipline:
     /// <list type="number">
     ///   <item>every entry balances, checked at commit</item>
-    ///   <item>postings are append-only â€” UPDATE and DELETE are revoked</item>
+    ///   <item>postings are append-only Ã¢â‚¬â€ UPDATE and DELETE are revoked</item>
     ///   <item>a posting to a control account must carry its dimension</item>
     ///   <item>nothing posts into a closed period</item>
     ///   <item>tenant isolation, as everywhere else</item>
@@ -44,8 +44,8 @@ namespace Accounting.Api.Migrations
             // This is the specific weakness measured in the incumbent system, where the
             // audit trail existed only because the application chose to write it.
             // -----------------------------------------------------------------------
-            migrationBuilder.Sql("REVOKE UPDATE, DELETE ON journal_entries FROM clearwise_app;");
-            migrationBuilder.Sql("REVOKE UPDATE, DELETE ON postings FROM clearwise_app;");
+            migrationBuilder.Sql("REVOKE UPDATE, DELETE ON journal_entries FROM accounting_app;");
+            migrationBuilder.Sql("REVOKE UPDATE, DELETE ON postings FROM accounting_app;");
 
             // -----------------------------------------------------------------------
             // 3. Every entry balances
@@ -58,7 +58,7 @@ namespace Accounting.Api.Migrations
             // different units, and adding them would be meaningless.
             // -----------------------------------------------------------------------
             migrationBuilder.Sql("""
-                CREATE OR REPLACE FUNCTION clearwise_assert_entry_balanced()
+                CREATE OR REPLACE FUNCTION accounting_assert_entry_balanced()
                 RETURNS trigger LANGUAGE plpgsql AS $fn$
                 DECLARE
                     entry      uuid;
@@ -95,13 +95,13 @@ namespace Accounting.Api.Migrations
                     AFTER INSERT ON postings
                     DEFERRABLE INITIALLY DEFERRED
                     FOR EACH ROW
-                    EXECUTE FUNCTION clearwise_assert_entry_balanced();
+                    EXECUTE FUNCTION accounting_assert_entry_balanced();
                 """);
 
             // An entry with no postings at all would never fire the trigger above, so it
             // is caught from the other side.
             migrationBuilder.Sql("""
-                CREATE OR REPLACE FUNCTION clearwise_assert_entry_has_postings()
+                CREATE OR REPLACE FUNCTION accounting_assert_entry_has_postings()
                 RETURNS trigger LANGUAGE plpgsql AS $fn$
                 DECLARE line_count integer;
                 BEGIN
@@ -123,7 +123,7 @@ namespace Accounting.Api.Migrations
                     AFTER INSERT ON journal_entries
                     DEFERRABLE INITIALLY DEFERRED
                     FOR EACH ROW
-                    EXECUTE FUNCTION clearwise_assert_entry_has_postings();
+                    EXECUTE FUNCTION accounting_assert_entry_has_postings();
                 """);
 
             // -----------------------------------------------------------------------
@@ -134,7 +134,7 @@ namespace Accounting.Api.Migrations
             // recreates exactly the drift this design exists to prevent.
             // -----------------------------------------------------------------------
             migrationBuilder.Sql("""
-                CREATE OR REPLACE FUNCTION clearwise_assert_posting_valid()
+                CREATE OR REPLACE FUNCTION accounting_assert_posting_valid()
                 RETURNS trigger LANGUAGE plpgsql AS $fn$
                 DECLARE
                     account_control  text;
@@ -178,7 +178,7 @@ namespace Accounting.Api.Migrations
                 CREATE TRIGGER postings_valid
                     BEFORE INSERT ON postings
                     FOR EACH ROW
-                    EXECUTE FUNCTION clearwise_assert_posting_valid();
+                    EXECUTE FUNCTION accounting_assert_posting_valid();
                 """);
 
             // -----------------------------------------------------------------------
@@ -189,7 +189,7 @@ namespace Accounting.Api.Migrations
             // open one.
             // -----------------------------------------------------------------------
             migrationBuilder.Sql("""
-                CREATE OR REPLACE FUNCTION clearwise_assert_period_open()
+                CREATE OR REPLACE FUNCTION accounting_assert_period_open()
                 RETURNS trigger LANGUAGE plpgsql AS $fn$
                 DECLARE
                     period_state    text;
@@ -231,7 +231,7 @@ namespace Accounting.Api.Migrations
                 CREATE TRIGGER journal_entries_period_open
                     BEFORE INSERT ON journal_entries
                     FOR EACH ROW
-                    EXECUTE FUNCTION clearwise_assert_period_open();
+                    EXECUTE FUNCTION accounting_assert_period_open();
                 """);
         }
 
@@ -243,13 +243,13 @@ namespace Accounting.Api.Migrations
             migrationBuilder.Sql("DROP TRIGGER IF EXISTS postings_valid ON postings;");
             migrationBuilder.Sql("DROP TRIGGER IF EXISTS postings_entry_balanced ON postings;");
 
-            migrationBuilder.Sql("DROP FUNCTION IF EXISTS clearwise_assert_period_open();");
-            migrationBuilder.Sql("DROP FUNCTION IF EXISTS clearwise_assert_posting_valid();");
-            migrationBuilder.Sql("DROP FUNCTION IF EXISTS clearwise_assert_entry_has_postings();");
-            migrationBuilder.Sql("DROP FUNCTION IF EXISTS clearwise_assert_entry_balanced();");
+            migrationBuilder.Sql("DROP FUNCTION IF EXISTS accounting_assert_period_open();");
+            migrationBuilder.Sql("DROP FUNCTION IF EXISTS accounting_assert_posting_valid();");
+            migrationBuilder.Sql("DROP FUNCTION IF EXISTS accounting_assert_entry_has_postings();");
+            migrationBuilder.Sql("DROP FUNCTION IF EXISTS accounting_assert_entry_balanced();");
 
-            migrationBuilder.Sql("GRANT UPDATE, DELETE ON postings TO clearwise_app;");
-            migrationBuilder.Sql("GRANT UPDATE, DELETE ON journal_entries TO clearwise_app;");
+            migrationBuilder.Sql("GRANT UPDATE, DELETE ON postings TO accounting_app;");
+            migrationBuilder.Sql("GRANT UPDATE, DELETE ON journal_entries TO accounting_app;");
 
             foreach (var table in new[] { "journal_entries", "postings" })
             {

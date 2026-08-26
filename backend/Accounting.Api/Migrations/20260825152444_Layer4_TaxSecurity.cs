@@ -26,11 +26,11 @@ namespace Accounting.Api.Migrations
 
             // A code's rate must never change once anything has been posted under it.
             // Postings store the code, not the rate, so editing a rate would silently
-            // restate the tax on every historical document that used it â€” including returns
+            // restate the tax on every historical document that used it Ã¢â‚¬â€ including returns
             // already filed. Retiring a code and adding a replacement is the only correct
             // way to change a rate.
             migrationBuilder.Sql("""
-                CREATE OR REPLACE FUNCTION clearwise_tax_code_rate_is_final()
+                CREATE OR REPLACE FUNCTION accounting_tax_code_rate_is_final()
                 RETURNS trigger LANGUAGE plpgsql AS $fn$
                 DECLARE used boolean;
                 BEGIN
@@ -55,13 +55,13 @@ namespace Accounting.Api.Migrations
                 CREATE TRIGGER tax_codes_rate_is_final
                     BEFORE UPDATE ON tax_codes
                     FOR EACH ROW
-                    EXECUTE FUNCTION clearwise_tax_code_rate_is_final();
+                    EXECUTE FUNCTION accounting_tax_code_rate_is_final();
                 """);
 
             // Deleting a used code would orphan the tax_code_id on historical postings, so
             // a return could no longer be reconstructed from the ledger.
             migrationBuilder.Sql("""
-                CREATE OR REPLACE FUNCTION clearwise_tax_code_not_deletable_if_used()
+                CREATE OR REPLACE FUNCTION accounting_tax_code_not_deletable_if_used()
                 RETURNS trigger LANGUAGE plpgsql AS $fn$
                 BEGIN
                     IF EXISTS (SELECT 1 FROM postings WHERE tax_code_id = OLD.id) THEN
@@ -77,7 +77,7 @@ namespace Accounting.Api.Migrations
                 CREATE TRIGGER tax_codes_not_deletable_if_used
                     BEFORE DELETE ON tax_codes
                     FOR EACH ROW
-                    EXECUTE FUNCTION clearwise_tax_code_not_deletable_if_used();
+                    EXECUTE FUNCTION accounting_tax_code_not_deletable_if_used();
                 """);
         }
 
@@ -86,8 +86,8 @@ namespace Accounting.Api.Migrations
         {
             migrationBuilder.Sql("DROP TRIGGER IF EXISTS tax_codes_not_deletable_if_used ON tax_codes;");
             migrationBuilder.Sql("DROP TRIGGER IF EXISTS tax_codes_rate_is_final ON tax_codes;");
-            migrationBuilder.Sql("DROP FUNCTION IF EXISTS clearwise_tax_code_not_deletable_if_used();");
-            migrationBuilder.Sql("DROP FUNCTION IF EXISTS clearwise_tax_code_rate_is_final();");
+            migrationBuilder.Sql("DROP FUNCTION IF EXISTS accounting_tax_code_not_deletable_if_used();");
+            migrationBuilder.Sql("DROP FUNCTION IF EXISTS accounting_tax_code_rate_is_final();");
 
             foreach (var table in Tables)
             {

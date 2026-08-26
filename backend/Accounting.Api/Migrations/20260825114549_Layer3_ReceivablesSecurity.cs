@@ -29,13 +29,13 @@ namespace Accounting.Api.Migrations
             // money was applied is itself a fact: a customer disputing which invoice their
             // payment cleared is a real conversation, and "we changed our minds and kept no
             // record" is not an answer to it.
-            migrationBuilder.Sql("REVOKE UPDATE, DELETE ON allocations FROM clearwise_app;");
+            migrationBuilder.Sql("REVOKE UPDATE, DELETE ON allocations FROM accounting_app;");
 
-            // A draft receipt is ordinary mutable data. A posted one is not â€” same one-way
+            // A draft receipt is ordinary mutable data. A posted one is not Ã¢â‚¬â€ same one-way
             // door as a sales invoice, and a state condition rather than a privilege, so it
             // needs a trigger rather than a REVOKE.
             migrationBuilder.Sql("""
-                CREATE OR REPLACE FUNCTION clearwise_receipt_frozen_once_posted()
+                CREATE OR REPLACE FUNCTION accounting_receipt_frozen_once_posted()
                 RETURNS trigger LANGUAGE plpgsql AS $fn$
                 BEGIN
                     IF OLD.state = 'Posted' THEN
@@ -53,7 +53,7 @@ namespace Accounting.Api.Migrations
                 CREATE TRIGGER customer_receipts_frozen_once_posted
                     BEFORE UPDATE OR DELETE ON customer_receipts
                     FOR EACH ROW
-                    EXECUTE FUNCTION clearwise_receipt_frozen_once_posted();
+                    EXECUTE FUNCTION accounting_receipt_frozen_once_posted();
                 """);
         }
 
@@ -62,8 +62,8 @@ namespace Accounting.Api.Migrations
         {
             migrationBuilder.Sql(
                 "DROP TRIGGER IF EXISTS customer_receipts_frozen_once_posted ON customer_receipts;");
-            migrationBuilder.Sql("DROP FUNCTION IF EXISTS clearwise_receipt_frozen_once_posted();");
-            migrationBuilder.Sql("GRANT UPDATE, DELETE ON allocations TO clearwise_app;");
+            migrationBuilder.Sql("DROP FUNCTION IF EXISTS accounting_receipt_frozen_once_posted();");
+            migrationBuilder.Sql("GRANT UPDATE, DELETE ON allocations TO accounting_app;");
 
             foreach (var table in Tables)
             {

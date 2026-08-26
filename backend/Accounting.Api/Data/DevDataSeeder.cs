@@ -21,13 +21,19 @@ public static class DevDataSeeder
     public static readonly Guid DemoUserId = Guid.Parse("0195c0de-0000-4000-8000-000000000002");
 
     /// <summary>
-    /// The demo account's password. Development seeding only â€” this constant exists in a
-    /// public repository, so it is a convenience for a local demo and nothing more.
+    /// Creates the demonstration tenant, giving the demo account <paramref name="demoPassword"/>.
     /// </summary>
-    public const string DemoPassword = "clearwise-demo";
-
-    public static async Task SeedAsync(IServiceProvider services, CancellationToken cancellationToken = default)
+    /// <remarks>
+    /// The password is a parameter rather than a constant because this repository is public.
+    /// A committed default would be the real sign-in credential of every deployed instance
+    /// that forgot to override it. The caller reads it from configuration and skips seeding
+    /// altogether when it is absent.
+    /// </remarks>
+    public static async Task SeedAsync(
+        IServiceProvider services, string demoPassword, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(demoPassword);
+
         using var scope = services.CreateScope();
 
         var tenantContext = scope.ServiceProvider.GetRequiredService<ITenantContext>();
@@ -38,7 +44,7 @@ public static class DevDataSeeder
         // Each block guards itself rather than the whole method, so a database seeded by an
         // earlier version still picks up what was added since.
         await SeedTenantAsync(db, cancellationToken);
-        await SeedUserAsync(db, cancellationToken);
+        await SeedUserAsync(db, demoPassword, cancellationToken);
         await SeedCalendarAsync(db, cancellationToken);
         await SeedNumberSeriesAsync(db, cancellationToken);
         await SeedCustomersAsync(db, cancellationToken);
@@ -47,7 +53,7 @@ public static class DevDataSeeder
     }
 
     /// <summary>
-    /// Two Malaysian regimes â€” the historical GST and the current SST â€” so the
+    /// Two Malaysian regimes Ã¢â‚¬â€ the historical GST and the current SST Ã¢â‚¬â€ so the
     /// effective-dating actually has something to distinguish.
     /// </summary>
     /// <remarks>
@@ -133,7 +139,7 @@ public static class DevDataSeeder
     /// </summary>
     /// <remarks>
     /// Development only, and matched by code, which is exactly what the role column exists
-    /// to avoid â€” but this is fixing up a demo chart the seeder created and whose codes it
+    /// to avoid Ã¢â‚¬â€ but this is fixing up a demo chart the seeder created and whose codes it
     /// therefore knows. Nothing in the application resolves an account by code.
     /// </remarks>
     private static async Task BackfillSystemRolesAsync(
@@ -279,9 +285,10 @@ public static class DevDataSeeder
     /// <summary>
     /// The user every posted entry is attributed to until authentication exists. Guarded
     /// separately from the tenant, because a database seeded before this existed still
-    /// needs it â€” every journal entry has a foreign key to it.
+    /// needs it Ã¢â‚¬â€ every journal entry has a foreign key to it.
     /// </summary>
-    private static async Task SeedUserAsync(AccountingDbContext db, CancellationToken cancellationToken)
+    private static async Task SeedUserAsync(
+        AccountingDbContext db, string demoPassword, CancellationToken cancellationToken)
     {
         var existing = await db.Users.FirstOrDefaultAsync(u => u.Id == DemoUserId, cancellationToken);
 
@@ -289,11 +296,11 @@ public static class DevDataSeeder
         {
             // A database seeded before local sign-in existed has a user with no password,
             // which cannot authenticate. Guarding the whole method on the user's existence
-            // would leave it that way â€” the same mistake that left journal entries with no
+            // would leave it that way Ã¢â‚¬â€ the same mistake that left journal entries with no
             // user to attribute them to.
             if (existing.PasswordHash is null)
             {
-                existing.PasswordHash = AuthService.HashPassword(existing, DemoPassword);
+                existing.PasswordHash = AuthService.HashPassword(existing, demoPassword);
                 await db.SaveChangesAsync(cancellationToken);
             }
 
@@ -304,15 +311,14 @@ public static class DevDataSeeder
         {
             Id = DemoUserId,
             TenantId = DemoTenantId,
-            Email = "demo@clearwise.test",
+            Email = "demo@accounting.test",
             DisplayName = "Demo User",
             CreatedAtUtc = DateTimeOffset.UtcNow,
         };
 
-        // A known password for local development only. Hashed with the same algorithm as a
-        // real sign-in, so the seeded account exercises the actual code path rather than a
-        // shortcut around it.
-        user.PasswordHash = AuthService.HashPassword(user, DemoPassword);
+        // Hashed with the same algorithm as a real sign-in, so the seeded account exercises
+        // the actual code path rather than a shortcut around it.
+        user.PasswordHash = AuthService.HashPassword(user, demoPassword);
 
         db.Users.Add(user);
 
@@ -433,7 +439,7 @@ public static class DevDataSeeder
 
     /// <summary>
     /// A deliberately small Malaysian SME chart. Control accounts are marked, because a
-    /// posting to one must carry its dimension â€” that constraint arrives in Layer 1.
+    /// posting to one must carry its dimension Ã¢â‚¬â€ that constraint arrives in Layer 1.
     /// </summary>
     private static List<Account> BuildStarterChart(Guid tenantId)
     {

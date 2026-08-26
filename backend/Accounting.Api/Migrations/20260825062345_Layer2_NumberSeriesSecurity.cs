@@ -29,7 +29,7 @@ namespace Accounting.Api.Migrations
             //
             // DELETE does not. Removing a counter would silently restart a series and
             // reissue numbers already on issued documents.
-            migrationBuilder.Sql("REVOKE DELETE ON number_counters FROM clearwise_app;");
+            migrationBuilder.Sql("REVOKE DELETE ON number_counters FROM accounting_app;");
 
             // number_series keeps ordinary DML for now. Restricting it to an administrative
             // role is the right end state, but there is no such role or path yet, and
@@ -45,9 +45,9 @@ namespace Accounting.Api.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql("CREATE SEQUENCE IF NOT EXISTS journal_entry_no_seq START WITH 1 INCREMENT BY 1;");
-            migrationBuilder.Sql("GRANT USAGE, SELECT ON SEQUENCE journal_entry_no_seq TO clearwise_app;");
+            migrationBuilder.Sql("GRANT USAGE, SELECT ON SEQUENCE journal_entry_no_seq TO accounting_app;");
 
-            migrationBuilder.Sql("GRANT DELETE ON number_counters TO clearwise_app;");
+            migrationBuilder.Sql("GRANT DELETE ON number_counters TO accounting_app;");
 
             foreach (var table in new[] { "number_series", "number_counters" })
             {

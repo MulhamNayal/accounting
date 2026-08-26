@@ -3,6 +3,10 @@ import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Deployed, the app is an IIS Application under a sub-path, so every asset URL and the
+  // BASE_URL that api/client.ts resolves against have to carry it. The deploy workflow sets
+  // VITE_BASE; local development stays at the origin root.
+  base: process.env.VITE_BASE ?? '/',
   plugins: [react()],
   server: {
     port: 5173,

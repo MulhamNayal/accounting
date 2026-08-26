@@ -18,7 +18,7 @@ export interface Session {
   displayName: string
 }
 
-const STORAGE_KEY = 'clearwise.session'
+const STORAGE_KEY = 'accounting.session'
 
 /**
  * The signed-in session.

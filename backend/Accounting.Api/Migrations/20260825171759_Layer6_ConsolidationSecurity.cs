@@ -28,8 +28,8 @@ namespace Accounting.Api.Migrations
             // A consolidation is a published figure. Recomputing or editing one later would
             // pick up rates and eliminations as they stand then, so the numbers somebody
             // signed would no longer be the numbers the system reports. Run a new one instead.
-            migrationBuilder.Sql("REVOKE UPDATE, DELETE ON consolidation_runs FROM clearwise_app;");
-            migrationBuilder.Sql("REVOKE UPDATE, DELETE ON consolidation_postings FROM clearwise_app;");
+            migrationBuilder.Sql("REVOKE UPDATE, DELETE ON consolidation_runs FROM accounting_app;");
+            migrationBuilder.Sql("REVOKE UPDATE, DELETE ON consolidation_postings FROM accounting_app;");
 
             // Rates keep UPDATE on purpose: unlike a posting, a rate is a reference figure and
             // nothing recorded depends on it. Postings store the rate they were made at, and a
@@ -40,8 +40,8 @@ namespace Accounting.Api.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql("GRANT UPDATE, DELETE ON consolidation_postings TO clearwise_app;");
-            migrationBuilder.Sql("GRANT UPDATE, DELETE ON consolidation_runs TO clearwise_app;");
+            migrationBuilder.Sql("GRANT UPDATE, DELETE ON consolidation_postings TO accounting_app;");
+            migrationBuilder.Sql("GRANT UPDATE, DELETE ON consolidation_runs TO accounting_app;");
 
             foreach (var table in Tables)
             {

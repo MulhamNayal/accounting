@@ -32,9 +32,9 @@ namespace Accounting.Api.Migrations
             // This is also what makes the absence of a quantity_remaining column safe.
             // Remaining is derived from these rows, so if they cannot change, the derivation
             // cannot silently drift.
-            migrationBuilder.Sql("REVOKE UPDATE, DELETE ON stock_moves FROM clearwise_app;");
-            migrationBuilder.Sql("REVOKE UPDATE, DELETE ON cost_layers FROM clearwise_app;");
-            migrationBuilder.Sql("REVOKE UPDATE, DELETE ON cost_consumptions FROM clearwise_app;");
+            migrationBuilder.Sql("REVOKE UPDATE, DELETE ON stock_moves FROM accounting_app;");
+            migrationBuilder.Sql("REVOKE UPDATE, DELETE ON cost_layers FROM accounting_app;");
+            migrationBuilder.Sql("REVOKE UPDATE, DELETE ON cost_consumptions FROM accounting_app;");
 
             // A layer must never be consumed beyond what it received. Without this, a
             // concurrent pair of issues could each see the same stock available and both
@@ -45,7 +45,7 @@ namespace Accounting.Api.Migrations
             // removed it. An advisory lock needs no table privilege, achieves the same
             // ordering, and releases at end of transaction on its own.
             migrationBuilder.Sql("""
-                CREATE OR REPLACE FUNCTION clearwise_cost_layer_not_overconsumed()
+                CREATE OR REPLACE FUNCTION accounting_cost_layer_not_overconsumed()
                 RETURNS trigger LANGUAGE plpgsql AS $fn$
                 DECLARE
                     received decimal(19,4);
@@ -77,7 +77,7 @@ namespace Accounting.Api.Migrations
                     AFTER INSERT ON cost_consumptions
                     DEFERRABLE INITIALLY DEFERRED
                     FOR EACH ROW
-                    EXECUTE FUNCTION clearwise_cost_layer_not_overconsumed();
+                    EXECUTE FUNCTION accounting_cost_layer_not_overconsumed();
                 """);
         }
 
@@ -86,11 +86,11 @@ namespace Accounting.Api.Migrations
         {
             migrationBuilder.Sql(
                 "DROP TRIGGER IF EXISTS cost_consumptions_within_layer ON cost_consumptions;");
-            migrationBuilder.Sql("DROP FUNCTION IF EXISTS clearwise_cost_layer_not_overconsumed();");
+            migrationBuilder.Sql("DROP FUNCTION IF EXISTS accounting_cost_layer_not_overconsumed();");
 
-            migrationBuilder.Sql("GRANT UPDATE, DELETE ON cost_consumptions TO clearwise_app;");
-            migrationBuilder.Sql("GRANT UPDATE, DELETE ON cost_layers TO clearwise_app;");
-            migrationBuilder.Sql("GRANT UPDATE, DELETE ON stock_moves TO clearwise_app;");
+            migrationBuilder.Sql("GRANT UPDATE, DELETE ON cost_consumptions TO accounting_app;");
+            migrationBuilder.Sql("GRANT UPDATE, DELETE ON cost_layers TO accounting_app;");
+            migrationBuilder.Sql("GRANT UPDATE, DELETE ON stock_moves TO accounting_app;");
 
             foreach (var table in Tables)
             {

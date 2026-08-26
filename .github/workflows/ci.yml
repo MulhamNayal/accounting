@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+
+    # A real PostgreSQL, never an in-memory provider. Row level security, deferred constraint
+    # triggers and revoked privileges are precisely what the suite tests, and no in-memory
+    # provider implements any of them -- a suite that passed against one would be misleading.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      # The two roles are created by hand rather than by a migration: a migration that
+      # created its own login roles would be granting itself the privileges it is supposed to
+      # be constrained by. Layer 0's REVOKE statements assume both already exist.
+      - name: Create roles and test database
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE accounting_owner LOGIN PASSWORD 'accounting_owner';
+          CREATE ROLE accounting_app   LOGIN PASSWORD 'accounting_app';
+          CREATE DATABASE accounting_test OWNER accounting_owner;
+          SQL
+
+      - name: Test
+        run: dotnet test Accounting.slnx --nologo -v minimal
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build

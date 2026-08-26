@@ -24,7 +24,7 @@ namespace Accounting.Api.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql("CREATE SEQUENCE journal_entry_no_seq START WITH 1 INCREMENT BY 1;");
-            migrationBuilder.Sql("GRANT USAGE, SELECT ON SEQUENCE journal_entry_no_seq TO clearwise_app;");
+            migrationBuilder.Sql("GRANT USAGE, SELECT ON SEQUENCE journal_entry_no_seq TO accounting_app;");
         }
 
         /// <inheritdoc />

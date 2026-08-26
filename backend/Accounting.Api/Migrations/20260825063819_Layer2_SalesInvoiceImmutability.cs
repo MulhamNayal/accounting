@@ -31,7 +31,7 @@ namespace Accounting.Api.Migrations
             // changing, and that is a state condition rather than a privilege, so it needs
             // a trigger rather than a REVOKE.
             migrationBuilder.Sql("""
-                CREATE OR REPLACE FUNCTION clearwise_sales_invoice_frozen_once_posted()
+                CREATE OR REPLACE FUNCTION accounting_sales_invoice_frozen_once_posted()
                 RETURNS trigger LANGUAGE plpgsql AS $fn$
                 BEGIN
                     IF OLD.state = 'Posted' THEN
@@ -49,13 +49,13 @@ namespace Accounting.Api.Migrations
                 CREATE TRIGGER sales_invoices_frozen_once_posted
                     BEFORE UPDATE OR DELETE ON sales_invoices
                     FOR EACH ROW
-                    EXECUTE FUNCTION clearwise_sales_invoice_frozen_once_posted();
+                    EXECUTE FUNCTION accounting_sales_invoice_frozen_once_posted();
                 """);
 
             // Lines are guarded through their parent: freezing the header while leaving the
             // lines editable would let the invoice total drift away from the entry it posted.
             migrationBuilder.Sql("""
-                CREATE OR REPLACE FUNCTION clearwise_invoice_line_frozen_once_posted()
+                CREATE OR REPLACE FUNCTION accounting_invoice_line_frozen_once_posted()
                 RETURNS trigger LANGUAGE plpgsql AS $fn$
                 DECLARE parent_state text;
                 BEGIN
@@ -76,7 +76,7 @@ namespace Accounting.Api.Migrations
                 CREATE TRIGGER sales_invoice_lines_frozen_once_posted
                     BEFORE INSERT OR UPDATE OR DELETE ON sales_invoice_lines
                     FOR EACH ROW
-                    EXECUTE FUNCTION clearwise_invoice_line_frozen_once_posted();
+                    EXECUTE FUNCTION accounting_invoice_line_frozen_once_posted();
                 """);
         }
 
@@ -87,8 +87,8 @@ namespace Accounting.Api.Migrations
                 "DROP TRIGGER IF EXISTS sales_invoice_lines_frozen_once_posted ON sales_invoice_lines;");
             migrationBuilder.Sql(
                 "DROP TRIGGER IF EXISTS sales_invoices_frozen_once_posted ON sales_invoices;");
-            migrationBuilder.Sql("DROP FUNCTION IF EXISTS clearwise_invoice_line_frozen_once_posted();");
-            migrationBuilder.Sql("DROP FUNCTION IF EXISTS clearwise_sales_invoice_frozen_once_posted();");
+            migrationBuilder.Sql("DROP FUNCTION IF EXISTS accounting_invoice_line_frozen_once_posted();");
+            migrationBuilder.Sql("DROP FUNCTION IF EXISTS accounting_sales_invoice_frozen_once_posted();");
 
             foreach (var table in Tables)
             {

@@ -18,8 +18,8 @@ public class AuthTests
     private static readonly JwtOptions Options = new()
     {
         SigningKey = "test-only-signing-key-at-least-32-bytes-long!!",
-        Issuer = "clearwise-test",
-        Audience = "clearwise-test",
+        Issuer = "accounting-test",
+        Audience = "accounting-test",
         AccessTokenMinutes = 60,
     };
 

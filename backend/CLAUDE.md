@@ -1,12 +1,12 @@
-# CLAUDE.md â€” backend
+# CLAUDE.md Ã¢â‚¬â€ backend
 
 Read the root `CLAUDE.md` first. This covers the C# side only.
 
 **If you have also worked in `erp-api`/`IqiCore`:** four rules here are the *opposite* of
-that codebase's â€” lazy loading, EF migrations, the repository layer, and error handling. Do
+that codebase's Ã¢â‚¬â€ lazy loading, EF migrations, the repository layer, and error handling. Do
 not carry those habits over.
 
-**Architecture:** `Controllers â†’ Services â†’ DbContext â†’ PostgreSQL`. There is **no
+**Architecture:** `Controllers Ã¢â€ â€™ Services Ã¢â€ â€™ DbContext Ã¢â€ â€™ PostgreSQL`. There is **no
 repository layer**; services use `AccountingDbContext` directly.
 
 ---
@@ -15,11 +15,11 @@ repository layer**; services use `AccountingDbContext` directly.
 
 Do not weaken any of this. It is the product.
 
-- `UPDATE` and `DELETE` are **revoked** from `clearwise_app` on `journal_entries`,
+- `UPDATE` and `DELETE` are **revoked** from `accounting_app` on `journal_entries`,
   `postings` and `period_events`.
 - A **deferred** constraint trigger asserts debits = credits in functional currency at
   `COMMIT`, so a multi-row insert stays legal while in progress.
-- Correction links point **backwards only** â€” `reverses_entry_id` and
+- Correction links point **backwards only** Ã¢â‚¬â€ `reverses_entry_id` and
   `supersedes_entry_id` sit on the *new* row. A forward pointer would require updating the
   original, which the revoke forbids.
 - A posting to a control account **must** carry its dimension: receivables needs a
@@ -38,10 +38,10 @@ is the design: a column recording mutation implies mutation is possible.
 
 | Role | Used by | Holds |
 |---|---|---|
-| `clearwise_owner` | EF migrations, via `AccountingDbContextFactory` | DDL |
-| `clearwise_app` | The running application | DML only, minus the revokes above |
+| `accounting_owner` | EF migrations, via `AccountingDbContextFactory` | DDL |
+| `accounting_app` | The running application | DML only, minus the revokes above |
 
-**The application must never own the ledger tables** â€” an owner can grant itself back what
+**The application must never own the ledger tables** Ã¢â‚¬â€ an owner can grant itself back what
 the design revokes. Keep the two connection strings separate.
 
 Tenant isolation is **row level security**, not query discipline. Every tenant-scoped table
@@ -55,7 +55,7 @@ and returns no rows, which is the correct way to fail.
 
 - **Code-first migrations are the source of truth.** Never hand-edit the schema.
   `dotnet ef migrations add <Name> --project backend/Accounting.Api/Accounting.Api.csproj`
-- **Lazy loading is OFF.** `.Include()`/`.ThenInclude()` is required, not banned â€” a
+- **Lazy loading is OFF.** `.Include()`/`.ThenInclude()` is required, not banned Ã¢â‚¬â€ a
   used-but-not-included navigation property is `null`, not a silent extra query.
 - **Read every generated migration before applying it**, especially `defaultValue` on new
   non-nullable columns. EF emits the CLR default, which is often wrong for existing rows.
@@ -79,7 +79,7 @@ and returns no rows, which is the correct way to fail.
 - **Guard clauses first.** Immutable request DTOs (records). No God classes.
 - **Constructor injection only**, registered in `Program.cs`. Never `new` up a service or a
   `DbContext` inside another.
-- Posting rules are **code, not configuration** â€” a pure function from document to posting
+- Posting rules are **code, not configuration** Ã¢â‚¬â€ a pure function from document to posting
   set, run once at posting time, its output then a frozen fact. **Never re-derive postings.**
 - **Allocate document numbers inside the transaction that writes the document.** A gapless
   series is gapless only because a rolled-back write rolls back the counter too.
@@ -91,13 +91,13 @@ and returns no rows, which is the correct way to fail.
 ## Controllers
 
 - **Thin.** Route, call one service, return. No business logic and **no `DbContext`**.
-- **Never catch an exception.** `GlobalExceptionHandler` maps type â†’ status in one place:
-  `NotFoundException` â†’ 404, `PostingValidationException` â†’ 400,
-  `LedgerIntegrityException` â†’ 409, anything else â†’ 502 `ProblemDetails`.
+- **Never catch an exception.** `GlobalExceptionHandler` maps type Ã¢â€ â€™ status in one place:
+  `NotFoundException` Ã¢â€ â€™ 404, `PostingValidationException` Ã¢â€ â€™ 400,
+  `LedgerIntegrityException` Ã¢â€ â€™ 409, anything else Ã¢â€ â€™ 502 `ProblemDetails`.
 - 400/404/409 bodies are a **raw JSON string** so the frontend reads the message directly.
   Don't change that shape without updating `frontend/src/api/client.ts`.
 - Routes are `kebab-case`: `/api/sales-invoices`, `/api/journal-entries`.
-- Use `CreatedAtRoute` with an explicit route name, never `CreatedAtAction(nameof(...))` â€”
+- Use `CreatedAtRoute` with an explicit route name, never `CreatedAtAction(nameof(...))` Ã¢â‚¬â€
   ASP.NET strips the `Async` suffix and the mismatch throws *after* the entity is committed,
   turning a success into a misleading error.
 - Simple field-required checks stay as inline guard clauses returning `BadRequest`.
@@ -115,7 +115,7 @@ and returns no rows, which is the correct way to fail.
 - Structured log templates, never interpolation. Never log secrets or PII:
   `logger.LogInformation("Posted {EntryNo} for {Entity}", entryNo, code)`
 - `IOptions<T>` in services, not raw `IConfiguration`.
-- Money is `decimal` with explicit precision â€” `numeric(19,4)` amounts,
+- Money is `decimal` with explicit precision Ã¢â‚¬â€ `numeric(19,4)` amounts,
   `numeric(19,10)` rates.
 - Filter at the query level, not in memory.
 
@@ -125,10 +125,10 @@ and returns no rows, which is the correct way to fail.
 
 - **Tests run against a real PostgreSQL**, never an in-memory provider. RLS, deferred
   triggers and revoked privileges are the things under test, and no in-memory provider
-  implements any of them â€” a green suite against one would be actively misleading.
+  implements any of them Ã¢â‚¬â€ a green suite against one would be actively misleading.
 - Each test builds its own tenant via `LedgerFixture`, so tests never see each other's rows.
 - Method naming: `MethodName_Scenario_ExpectedResult`.
-- **Don't assert the exception type for a deferred constraint** â€” it surfaces from `COMMIT`
+- **Don't assert the exception type for a deferred constraint** Ã¢â‚¬â€ it surfaces from `COMMIT`
   unwrapped, not inside `DbUpdateException`. Assert the message instead.
 - Add tests alongside the code, not in a later pass.
 
@@ -137,12 +137,12 @@ and returns no rows, which is the correct way to fail.
 ## Never Do
 
 - Put business logic or a `DbContext` in a controller
-- Catch an exception in a controller to map a status â€” throw a typed exception
+- Catch an exception in a controller to map a status Ã¢â‚¬â€ throw a typed exception
 - Weaken the ledger revokes, the balance trigger, or a document freeze trigger
 - Add `UpdatedAt`/`IsCancelled` to a ledger table
 - Re-derive postings for a document that is already posted
 - Add a tenant predicate as a substitute for RLS, or bypass RLS
 - Apply a migration without reading its `defaultValue`s
 - Allocate a document number outside the document's transaction
-- Avoid `.Include()` out of lazy-loading habit â€” lazy loading is **OFF** here
+- Avoid `.Include()` out of lazy-loading habit Ã¢â‚¬â€ lazy loading is **OFF** here
 - `new` up a service or `DbContext` inside another

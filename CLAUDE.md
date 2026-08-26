@@ -57,6 +57,26 @@ cd backend/Accounting.Api && dotnet run --urls http://localhost:5100
 
 ---
 
+## Deployment
+
+**Push to `main` deploys.** No branch or PR workflow exists, so confirm with Mulham before
+pushing unless he has already asked for it in the current exchange.
+
+Full setup, secrets and rationale: `docs/deployment.md`. The parts worth knowing before
+touching anything:
+
+- **The deploy applies migrations itself**, from a script generated out of `Migrations/` on
+  every run, using the owner role, *before* the app pool stops. Don't hand-write a migration
+  script into `scripts/sql/` — adding the migration is enough, and a committed script is a
+  second source of truth that will drift.
+- **One IIS Application.** The API serves the built frontend from its own `wwwroot`, so the
+  deployed product is a single origin. `frontend/src/api/client.ts` resolves against
+  `BASE_URL` for exactly this reason.
+- **Never add `pull_request` to `deploy.yml`.** This repository is public; a fork-triggered
+  run would be handed every secret.
+
+---
+
 ## Commits
 
 Lowercase, imperative, prefixed by area: `backend: ...`, `frontend: ...`, `fix: ...`,
@@ -87,3 +107,4 @@ PowerShell mangles the argument and git treats the fragments as pathspecs.
 - Commit secrets, connection strings or API keys
 - Commit source-system data files (`.fdb`, `.fbk`, exports) â€” **this repo is public**
 - Commit with AI attribution
+- Push to `main` without confirming â€” it deploys immediately
