@@ -77,6 +77,9 @@ builder.Services.AddScoped<IPostingService, PostingService>();
 builder.Services.AddScoped<IFinancialStatementsService, FinancialStatementsService>();
 builder.Services.AddScoped<ISalesInvoiceService, SalesInvoiceService>();
 builder.Services.AddScoped<IReceivablesService, ReceivablesService>();
+builder.Services.AddScoped<ISupplierService, SupplierService>();
+builder.Services.AddScoped<IPurchaseInvoiceService, PurchaseInvoiceService>();
+builder.Services.AddScoped<IPayablesService, PayablesService>();
 builder.Services.AddScoped<ITaxService, TaxService>();
 builder.Services.AddScoped<IStockService, StockService>();
 builder.Services.AddScoped<IExchangeRateService, ExchangeRateService>();
@@ -84,6 +87,7 @@ builder.Services.AddScoped<IConsolidationService, ConsolidationService>();
 
 // Posting rules are stateless pure functions from document to posting set.
 builder.Services.AddSingleton<SalesInvoicePostingRule>();
+builder.Services.AddSingleton<PurchaseInvoicePostingRule>();
 
 // Controllers never catch. Exception type maps to status code in one place.
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();

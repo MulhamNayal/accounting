@@ -48,6 +48,7 @@ public static class DevDataSeeder
         await SeedCalendarAsync(db, cancellationToken);
         await SeedNumberSeriesAsync(db, cancellationToken);
         await SeedCustomersAsync(db, cancellationToken);
+        await SeedSuppliersAsync(db, cancellationToken);
         await BackfillSystemRolesAsync(db, cancellationToken);
         await SeedTaxAsync(db, cancellationToken);
     }
@@ -228,6 +229,41 @@ public static class DevDataSeeder
         await db.SaveChangesAsync(cancellationToken);
     }
 
+    private static async Task SeedSuppliersAsync(
+        AccountingDbContext db, CancellationToken cancellationToken)
+    {
+        if (await db.Suppliers.AnyAsync(cancellationToken))
+        {
+            return;
+        }
+
+        (string Code, string Name, string Currency, int Terms)[] suppliers =
+        [
+            ("S0001", "Damai Office Supplies Sdn Bhd", "MYR", 30),
+            ("S0002", "Enggang Facilities Management Sdn Bhd", "MYR", 14),
+            ("S0003", "Firdaus Professional Services", "MYR", 30),
+            // Foreign-currency, so settling one of its bills exercises the realised exchange
+            // difference on the payables side.
+            ("S0004", "Global Software Ltd", "USD", 45),
+        ];
+
+        foreach (var (code, name, currency, terms) in suppliers)
+        {
+            db.Suppliers.Add(new Supplier
+            {
+                Id = Guid.NewGuid(),
+                TenantId = DemoTenantId,
+                Code = code,
+                Name = name,
+                CurrencyCode = currency,
+                CreditTermDays = terms,
+                CreatedAtUtc = DateTimeOffset.UtcNow,
+            });
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
     /// <summary>
     /// A number series per entity for each document type that exists so far.
     /// </summary>
@@ -248,6 +284,12 @@ public static class DevDataSeeder
             ("SalesInvoice", "IV", "Sales Invoice", "IV-{1:yyyy}-{0:D5}", true),
             ("CreditNote", "CN", "Credit Note", "CN-{1:yyyy}-{0:D5}", true),
             ("CustomerReceipt", "OR", "Official Receipt", "OR-{1:yyyy}-{0:D5}", false),
+            // Purchases are numbered for our own filing, not for anyone else's inspection --
+            // the number a tax authority cares about on a bill is the supplier's, which is
+            // recorded separately and is what the duplicate check keys on. So neither of
+            // these is gapless.
+            ("PurchaseInvoice", "PI", "Purchase Invoice", "PI-{1:yyyy}-{0:D5}", false),
+            ("SupplierPayment", "PV", "Payment Voucher", "PV-{1:yyyy}-{0:D5}", false),
         ];
 
         foreach (var entity in entities)

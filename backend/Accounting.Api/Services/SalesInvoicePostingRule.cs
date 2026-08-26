@@ -25,6 +25,19 @@ public interface IPostingRule<in TDocument>
 }
 
 /// <summary>
+/// The same contract for a document whose rule needs a different set of accounts resolved
+/// for it. Sales and purchases do not reach for the same things — one needs receivables and
+/// output tax, the other payables and input tax — and a single context carrying both would be
+/// half null on every call.
+/// </summary>
+public interface IPostingRule<in TDocument, in TContext>
+{
+    string DocumentType { get; }
+
+    IReadOnlyList<PostingLineRequest> Build(TDocument document, TContext context);
+}
+
+/// <summary>
 /// Which accounts a rule should reach for, resolved from the chart before it runs.
 /// </summary>
 /// <param name="ReceivablesAccountId">The receivables control account.</param>

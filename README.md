@@ -57,19 +57,20 @@ owner's credentials can still act. That is true of every system; it means the gu
 | 4 | Tax as a jurisdiction abstraction | ✅ |
 | 5 | Stock with FIFO cost layers and the correction cascade | ✅ |
 | 6 | Consolidation, eliminations, currency translation | ✅ |
-| 7 | Migration importer | ⬜ |
+| 7 | Payables: suppliers, bills, payments, allocation, ageing | ✅ |
+| 8 | Migration importer | ⬜ |
 
 Plus authentication, the profit and loss account and balance sheet, and a React front end
-covering invoices, receipts, ageing, stock, journals, the three statements and the chart of
-accounts.
+covering sales invoices, receipts, receivables ageing, bills, payments, payables ageing,
+stock, journals, the three statements and the chart of accounts.
 
-**Not built, and the list is longer than the one above:** purchases and payables — the entire
-buying side — credit and debit notes, the sales and purchase document chain (quotation, order,
-delivery note, goods received), bank reconciliation, stock takes, transfers and multiple
-locations, period close and year-end, tax returns, user and permission management, printable
-document layouts, e-Invoice submission, the migration importer, and a UI for consolidation.
+**Not built, and the list is still longer than the one above:** credit and debit notes on
+either side, the sales and purchase document chain (quotation, order, delivery note, goods
+received), bank reconciliation, stock takes, transfers and multiple locations, period close and
+year-end, tax returns, user and permission management, printable document layouts, e-Invoice
+submission, the migration importer, and a UI for consolidation.
 
-What exists is a correct, tamper-evident ledger core with receivables, stock and group
+What exists is a correct, tamper-evident ledger core with both trading sides, stock and group
 reporting on top. That is the hard part and the part incumbents get wrong; it is not yet a
 product anyone should run a business on. `docs/superpowers/specs/` has the design;
 `docs/research/` has what the incumbent-system examination found.
@@ -80,6 +81,9 @@ product anyone should run a business on. `docs/superpowers/specs/` has the desig
   trial balance, profit and loss account and balance sheet, each computed from postings on
   every request so that no stored figure can drift from the ledger it describes
 - **Receivables** — customers, invoices, receipts, allocation, ageing, statements
+- **Payables** — suppliers, bills, payments, allocation, ageing, statements, a duplicate-bill
+  control keyed on the supplier's own invoice number, and input tax that goes to an asset or
+  into the cost depending on whether the regime allows a reclaim
 - **Inventory** — FIFO cost layers, issues costed from the layers actually consumed, and
   retroactive cost corrections that adjust inventory and cost of sales without rewriting
   history

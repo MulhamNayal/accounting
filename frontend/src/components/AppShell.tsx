@@ -41,6 +41,10 @@ import {
   DataTrendingRegular,
   LibraryFilled,
   LibraryRegular,
+  ReceiptFilled,
+  ReceiptRegular,
+  WalletCreditCardFilled,
+  WalletCreditCardRegular,
   MoneyFilled,
   MoneyRegular,
   PersonRegular,
@@ -66,6 +70,8 @@ const InvoicesIcon = bundleIcon(DocumentBulletListFilled, DocumentBulletListRegu
 const ReceiptsIcon = bundleIcon(MoneyFilled, MoneyRegular)
 const AgeingIcon = bundleIcon(ClockFilled, ClockRegular)
 const StockIcon = bundleIcon(BoxFilled, BoxRegular)
+const BillsIcon = bundleIcon(ReceiptFilled, ReceiptRegular)
+const PaymentsIcon = bundleIcon(WalletCreditCardFilled, WalletCreditCardRegular)
 const ProfitIcon = bundleIcon(DataTrendingFilled, DataTrendingRegular)
 const BalanceSheetIcon = bundleIcon(LibraryFilled, LibraryRegular)
 const SettingsIcon = bundleIcon(SettingsFilled, SettingsRegular)
@@ -102,6 +108,12 @@ const SALES_ITEMS = [
   { path: '/invoices', label: 'Invoices', icon: <InvoicesIcon /> },
   { path: '/receipts', label: 'Receipts', icon: <ReceiptsIcon /> },
   { path: '/ageing', label: 'Ageing', icon: <AgeingIcon /> },
+]
+
+const PURCHASE_ITEMS = [
+  { path: '/bills', label: 'Bills', icon: <BillsIcon /> },
+  { path: '/payments', label: 'Payments', icon: <PaymentsIcon /> },
+  { path: '/payables-ageing', label: 'Ageing', icon: <AgeingIcon /> },
 ]
 
 const STOCK_ITEMS = [
@@ -179,6 +191,13 @@ export function AppShell({
 
           <NavSectionHeader>Sales</NavSectionHeader>
           {SALES_ITEMS.map((item) => (
+            <NavItem key={item.path} icon={item.icon} value={item.path}>
+              {item.label}
+            </NavItem>
+          ))}
+
+          <NavSectionHeader>Purchases</NavSectionHeader>
+          {PURCHASE_ITEMS.map((item) => (
             <NavItem key={item.path} icon={item.icon} value={item.path}>
               {item.label}
             </NavItem>

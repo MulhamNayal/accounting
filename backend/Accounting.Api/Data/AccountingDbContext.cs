@@ -22,6 +22,11 @@ public class AccountingDbContext(DbContextOptions<AccountingDbContext> options) 
     public DbSet<SalesInvoiceLine> SalesInvoiceLines => Set<SalesInvoiceLine>();
     public DbSet<CustomerReceipt> CustomerReceipts => Set<CustomerReceipt>();
     public DbSet<Allocation> Allocations => Set<Allocation>();
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
+    public DbSet<PurchaseInvoice> PurchaseInvoices => Set<PurchaseInvoice>();
+    public DbSet<PurchaseInvoiceLine> PurchaseInvoiceLines => Set<PurchaseInvoiceLine>();
+    public DbSet<SupplierPayment> SupplierPayments => Set<SupplierPayment>();
+    public DbSet<PaymentAllocation> PaymentAllocations => Set<PaymentAllocation>();
     public DbSet<TaxRegime> TaxRegimes => Set<TaxRegime>();
     public DbSet<TaxCode> TaxCodes => Set<TaxCode>();
     public DbSet<Item> Items => Set<Item>();
@@ -137,9 +142,158 @@ public class AccountingDbContext(DbContextOptions<AccountingDbContext> options) 
         ConfigureNumbering(builder);
         ConfigureSales(builder);
         ConfigureReceivables(builder);
+        ConfigurePayables(builder);
         ConfigureTax(builder);
         ConfigureStock(builder);
         ConfigureConsolidation(builder);
+    }
+
+    private static void ConfigurePayables(ModelBuilder builder)
+    {
+        builder.Entity<Supplier>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(30).IsRequired();
+            e.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            e.Property(x => x.RegistrationNo).HasMaxLength(50);
+            e.Property(x => x.TaxId).HasMaxLength(50);
+            e.Property(x => x.Email).HasMaxLength(320);
+            e.Property(x => x.Phone).HasMaxLength(40);
+            e.Property(x => x.Address).HasMaxLength(500);
+            e.Property(x => x.CurrencyCode).HasMaxLength(3).IsFixedLength().IsRequired();
+
+            // Tenant-wide, matching customers: one record for a supplier both companies buy from.
+            e.HasIndex(x => new { x.TenantId, x.Code }).IsUnique();
+
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_supplier_credit_terms", "credit_term_days >= 0"));
+        });
+
+        builder.Entity<PurchaseInvoice>(e =>
+        {
+            e.Property(x => x.DocNo).HasMaxLength(40);
+            e.Property(x => x.SupplierInvoiceNo).HasMaxLength(80).IsRequired();
+            e.Property(x => x.CurrencyCode).HasMaxLength(3).IsFixedLength().IsRequired();
+            e.Property(x => x.FxRate).HasPrecision(19, 10);
+            e.Property(x => x.Memo).HasMaxLength(500);
+            e.Property(x => x.State).HasConversion<string>().HasMaxLength(20);
+
+            e.HasIndex(x => new { x.LegalEntityId, x.DocNo })
+                .IsUnique()
+                .HasFilter("doc_no IS NOT NULL");
+            e.HasIndex(x => new { x.LegalEntityId, x.DocDate });
+
+            // The duplicate-bill control, enforced rather than merely checked in code. Paying
+            // the same invoice twice is the most expensive routine mistake in payables, and
+            // the database is the only place a concurrent double entry can be caught.
+            e.HasIndex(x => new { x.SupplierId, x.SupplierInvoiceNo }).IsUnique();
+
+            e.HasOne(x => x.LegalEntity).WithMany()
+                .HasForeignKey(x => x.LegalEntityId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Supplier).WithMany()
+                .HasForeignKey(x => x.SupplierId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.JournalEntry).WithMany()
+                .HasForeignKey(x => x.JournalEntryId).OnDelete(DeleteBehavior.Restrict);
+
+            e.Ignore(x => x.Total);
+            e.Ignore(x => x.TaxTotal);
+            e.Ignore(x => x.TotalWithTax);
+
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_purchase_invoice_due_after_doc", "due_date >= doc_date"));
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_purchase_invoice_posted_is_complete",
+                "(state = 'Draft' AND doc_no IS NULL AND journal_entry_id IS NULL) "
+                + "OR (state = 'Posted' AND doc_no IS NOT NULL AND journal_entry_id IS NOT NULL)"));
+        });
+
+        builder.Entity<PurchaseInvoiceLine>(e =>
+        {
+            e.Property(x => x.Description).HasMaxLength(500).IsRequired();
+            e.Property(x => x.Quantity).HasPrecision(19, 4);
+            e.Property(x => x.UnitPrice).HasPrecision(19, 4);
+            e.Property(x => x.TaxRate).HasPrecision(9, 4);
+
+            e.HasIndex(x => new { x.PurchaseInvoiceId, x.LineNo }).IsUnique();
+
+            e.HasOne(x => x.PurchaseInvoice).WithMany(x => x.Lines)
+                .HasForeignKey(x => x.PurchaseInvoiceId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.ChargeAccount).WithMany()
+                .HasForeignKey(x => x.ChargeAccountId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.TaxCode).WithMany()
+                .HasForeignKey(x => x.TaxCodeId).OnDelete(DeleteBehavior.Restrict);
+
+            e.Ignore(x => x.LineTotal);
+            e.Ignore(x => x.TaxAmount);
+            e.Ignore(x => x.LineTotalWithTax);
+            e.Ignore(x => x.ChargeAmount);
+
+            e.ToTable(t => t.HasCheckConstraint("ck_purchase_line_quantity", "quantity > 0"));
+            e.ToTable(t => t.HasCheckConstraint("ck_purchase_line_price", "unit_price > 0"));
+        });
+
+        builder.Entity<SupplierPayment>(e =>
+        {
+            e.Property(x => x.DocNo).HasMaxLength(40);
+            e.Property(x => x.CurrencyCode).HasMaxLength(3).IsFixedLength().IsRequired();
+            e.Property(x => x.FxRate).HasPrecision(19, 10);
+            e.Property(x => x.Amount).HasPrecision(19, 4);
+            e.Property(x => x.Reference).HasMaxLength(80);
+            e.Property(x => x.Memo).HasMaxLength(500);
+            e.Property(x => x.State).HasConversion<string>().HasMaxLength(20);
+
+            e.HasIndex(x => new { x.LegalEntityId, x.DocNo })
+                .IsUnique()
+                .HasFilter("doc_no IS NOT NULL");
+            e.HasIndex(x => x.SupplierId);
+
+            e.HasOne(x => x.LegalEntity).WithMany()
+                .HasForeignKey(x => x.LegalEntityId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Supplier).WithMany()
+                .HasForeignKey(x => x.SupplierId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.BankAccount).WithMany()
+                .HasForeignKey(x => x.BankAccountId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.JournalEntry).WithMany()
+                .HasForeignKey(x => x.JournalEntryId).OnDelete(DeleteBehavior.Restrict);
+
+            e.ToTable(t => t.HasCheckConstraint("ck_payment_amount_positive", "amount > 0"));
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_payment_posted_is_complete",
+                "(state = 'Draft' AND doc_no IS NULL AND journal_entry_id IS NULL) "
+                + "OR (state = 'Posted' AND doc_no IS NOT NULL AND journal_entry_id IS NOT NULL)"));
+        });
+
+        builder.Entity<PaymentAllocation>(e =>
+        {
+            e.Property(x => x.Amount).HasPrecision(19, 4);
+            e.Property(x => x.FunctionalAmount).HasPrecision(19, 4);
+            e.Property(x => x.FxGainLossFunctional).HasPrecision(19, 4);
+
+            e.HasIndex(x => x.SupplierPaymentId);
+            e.HasIndex(x => x.PurchaseInvoiceId);
+
+            e.HasIndex(x => x.ReversesAllocationId)
+                .IsUnique()
+                .HasFilter("reverses_allocation_id IS NOT NULL");
+
+            e.HasOne(x => x.SupplierPayment).WithMany()
+                .HasForeignKey(x => x.SupplierPaymentId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.PurchaseInvoice).WithMany()
+                .HasForeignKey(x => x.PurchaseInvoiceId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.JournalEntry).WithMany()
+                .HasForeignKey(x => x.JournalEntryId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.ReversesAllocation).WithMany()
+                .HasForeignKey(x => x.ReversesAllocationId).OnDelete(DeleteBehavior.Restrict);
+
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_payment_allocation_amount_nonzero", "amount <> 0"));
+
+            // Sign carries meaning, matching the receivables side: an original allocation
+            // applies money, a reversal takes it back.
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_payment_allocation_sign_matches_kind",
+                "(reverses_allocation_id IS NULL AND amount > 0) "
+                + "OR (reverses_allocation_id IS NOT NULL AND amount < 0)"));
+        });
     }
 
     private static void ConfigureConsolidation(ModelBuilder builder)

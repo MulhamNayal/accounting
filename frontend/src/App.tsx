@@ -20,13 +20,16 @@ import type { LegalEntitySummary } from './api/entities'
 import { AppShell } from './components/AppShell'
 import { AgeingPage } from './pages/AgeingPage'
 import { BalanceSheetPage } from './pages/BalanceSheetPage'
+import { BillsPage } from './pages/BillsPage'
 import { ChartOfAccountsPage } from './pages/ChartOfAccountsPage'
 import { EntitiesPage } from './pages/EntitiesPage'
 import { InvoicesPage } from './pages/InvoicesPage'
 import { JournalsPage } from './pages/JournalsPage'
+import { PayablesAgeingPage } from './pages/PayablesAgeingPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { ProfitAndLossPage } from './pages/ProfitAndLossPage'
 import { ReceiptsPage } from './pages/ReceiptsPage'
+import { SupplierPaymentsPage } from './pages/SupplierPaymentsPage'
 import { SignInPage } from './pages/SignInPage'
 import { StockPage } from './pages/StockPage'
 import { TrialBalancePage } from './pages/TrialBalancePage'
@@ -155,6 +158,9 @@ function App() {
           <Route path="/invoices" element={<InvoicesPage entityId={selectedEntityId} />} />
           <Route path="/receipts" element={<ReceiptsPage entityId={selectedEntityId} />} />
           <Route path="/ageing" element={<AgeingPage entityId={selectedEntityId} />} />
+          <Route path="/bills" element={<BillsPage entityId={selectedEntityId} />} />
+          <Route path="/payments" element={<SupplierPaymentsPage entityId={selectedEntityId} />} />
+          <Route path="/payables-ageing" element={<PayablesAgeingPage entityId={selectedEntityId} />} />
           <Route path="/stock" element={<StockPage entityId={selectedEntityId} />} />
           <Route path="/journals" element={<JournalsPage entityId={selectedEntityId} />} />
           <Route path="/trial-balance" element={<TrialBalancePage entityId={selectedEntityId} />} />
