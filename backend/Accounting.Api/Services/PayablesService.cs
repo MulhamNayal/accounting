@@ -391,12 +391,18 @@ public sealed class PayablesService(
             .Select(g => new { InvoiceId = g.Key, Allocated = g.Sum(a => a.Amount) })
             .ToDictionaryAsync(x => x.InvoiceId, x => x.Allocated, ct);
 
+        var credited = await CreditedByInvoiceAsync(legalEntityId, ct);
+
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
         return invoices
             .Select(i =>
             {
-                var applied = allocated.GetValueOrDefault(i.Id, 0m);
+                // A credit and a payment both stop the bill being owed; folding them together
+                // keeps the ageing total equal to the payables control account, and the credit
+                // note itself records why it happened.
+                var applied = allocated.GetValueOrDefault(i.Id, 0m)
+                              + credited.GetValueOrDefault(i.Id, 0m);
                 var gross = i.TotalWithTax;
                 return new OpenPurchaseInvoice(
                     i.Id, i.DocNo, i.SupplierInvoiceNo, i.DocDate, i.DueDate, i.CurrencyCode,
@@ -535,7 +541,25 @@ public sealed class PayablesService(
             .Where(a => a.PurchaseInvoiceId == invoice.Id)
             .SumAsync(a => (decimal?)a.Amount, ct) ?? 0m;
 
-        return gross - allocated;
+        var credited = (await CreditedByInvoiceAsync(invoice.LegalEntityId, ct))
+            .GetValueOrDefault(invoice.Id, 0m);
+
+        return gross - allocated - credited;
+    }
+
+    /// <summary>Posted purchase credit note totals per bill. Drafts are not in the books.</summary>
+    private async Task<Dictionary<Guid, decimal>> CreditedByInvoiceAsync(
+        Guid legalEntityId, CancellationToken ct)
+    {
+        var notes = await db.PurchaseCreditNotes
+            .AsNoTracking()
+            .Include(n => n.Lines)
+            .Where(n => n.LegalEntityId == legalEntityId && n.State == DocumentState.Posted)
+            .ToListAsync(ct);
+
+        return notes
+            .GroupBy(n => n.PurchaseInvoiceId)
+            .ToDictionary(g => g.Key, g => g.Sum(n => n.TotalWithTax));
     }
 
     /// <summary>

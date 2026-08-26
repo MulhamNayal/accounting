@@ -35,7 +35,8 @@ Every one of these is enforced by PostgreSQL, not by application discipline:
   is provably balanced" is a constraint here, not an aspiration.
 - **Corrections are new entries** linked backwards to what they correct. There is no
   `UpdatedAt`, no `UpdateCount`, no `IsCancelled` on any ledger table — their absence is the
-  design.
+  design. A posted invoice is reduced by a credit note carrying a reason, never by becoming
+  smaller.
 - **Tenant isolation is row level security**, so a forgotten `WHERE` clause cannot leak
   another company's books. The tenant comes from a signed token claim, never from request
   input.
@@ -58,17 +59,19 @@ owner's credentials can still act. That is true of every system; it means the gu
 | 5 | Stock with FIFO cost layers and the correction cascade | ✅ |
 | 6 | Consolidation, eliminations, currency translation | ✅ |
 | 7 | Payables: suppliers, bills, payments, allocation, ageing | ✅ |
-| 8 | Migration importer | ⬜ |
+| 8 | Credit notes on both sides | ✅ |
+| 9 | Migration importer | ⬜ |
 
 Plus authentication, the profit and loss account and balance sheet, and a React front end
 covering sales invoices, receipts, receivables ageing, bills, payments, payables ageing,
-stock, journals, the three statements and the chart of accounts.
+credit notes, stock, journals, the three statements and the chart of accounts.
 
-**Not built, and the list is still longer than the one above:** credit and debit notes on
-either side, the sales and purchase document chain (quotation, order, delivery note, goods
+**Not built:** the sales and purchase document chain (quotation, order, delivery note, goods
 received), bank reconciliation, stock takes, transfers and multiple locations, period close and
 year-end, tax returns, user and permission management, printable document layouts, e-Invoice
-submission, the migration importer, and a UI for consolidation.
+submission, the migration importer, and a UI for consolidation. Credits on account are also
+absent — a credit note must name the invoice it credits, which is what keeps each ageing total
+provably equal to its control account.
 
 What exists is a correct, tamper-evident ledger core with both trading sides, stock and group
 reporting on top. That is the hard part and the part incumbents get wrong; it is not yet a

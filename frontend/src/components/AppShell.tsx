@@ -41,6 +41,8 @@ import {
   DataTrendingRegular,
   LibraryFilled,
   LibraryRegular,
+  ArrowUndoFilled,
+  ArrowUndoRegular,
   ReceiptFilled,
   ReceiptRegular,
   WalletCreditCardFilled,
@@ -71,6 +73,7 @@ const ReceiptsIcon = bundleIcon(MoneyFilled, MoneyRegular)
 const AgeingIcon = bundleIcon(ClockFilled, ClockRegular)
 const StockIcon = bundleIcon(BoxFilled, BoxRegular)
 const BillsIcon = bundleIcon(ReceiptFilled, ReceiptRegular)
+const CreditNotesIcon = bundleIcon(ArrowUndoFilled, ArrowUndoRegular)
 const PaymentsIcon = bundleIcon(WalletCreditCardFilled, WalletCreditCardRegular)
 const ProfitIcon = bundleIcon(DataTrendingFilled, DataTrendingRegular)
 const BalanceSheetIcon = bundleIcon(LibraryFilled, LibraryRegular)
@@ -126,6 +129,12 @@ const LEDGER_ITEMS = [
 
 // Separated from the ledger: these are read-only views of the same postings, and grouping
 // them together is how an accountant expects to find them.
+// Its own group rather than sitting under Sales or Purchases: one page covers both sides,
+// and filing it under either would make the other half invisible.
+const ADJUSTMENT_ITEMS = [
+  { path: '/credit-notes', label: 'Credit notes', icon: <CreditNotesIcon /> },
+]
+
 const REPORT_ITEMS = [
   { path: '/trial-balance', label: 'Trial balance', icon: <ScalesIcon /> },
   { path: '/profit-and-loss', label: 'Profit and loss', icon: <ProfitIcon /> },
@@ -212,6 +221,13 @@ export function AppShell({
 
           <NavSectionHeader>Ledger</NavSectionHeader>
           {LEDGER_ITEMS.map((item) => (
+            <NavItem key={item.path} icon={item.icon} value={item.path}>
+              {item.label}
+            </NavItem>
+          ))}
+
+          <NavSectionHeader>Adjustments</NavSectionHeader>
+          {ADJUSTMENT_ITEMS.map((item) => (
             <NavItem key={item.path} icon={item.icon} value={item.path}>
               {item.label}
             </NavItem>

@@ -27,6 +27,10 @@ public class AccountingDbContext(DbContextOptions<AccountingDbContext> options) 
     public DbSet<PurchaseInvoiceLine> PurchaseInvoiceLines => Set<PurchaseInvoiceLine>();
     public DbSet<SupplierPayment> SupplierPayments => Set<SupplierPayment>();
     public DbSet<PaymentAllocation> PaymentAllocations => Set<PaymentAllocation>();
+    public DbSet<SalesCreditNote> SalesCreditNotes => Set<SalesCreditNote>();
+    public DbSet<SalesCreditNoteLine> SalesCreditNoteLines => Set<SalesCreditNoteLine>();
+    public DbSet<PurchaseCreditNote> PurchaseCreditNotes => Set<PurchaseCreditNote>();
+    public DbSet<PurchaseCreditNoteLine> PurchaseCreditNoteLines => Set<PurchaseCreditNoteLine>();
     public DbSet<TaxRegime> TaxRegimes => Set<TaxRegime>();
     public DbSet<TaxCode> TaxCodes => Set<TaxCode>();
     public DbSet<Item> Items => Set<Item>();
@@ -143,9 +147,131 @@ public class AccountingDbContext(DbContextOptions<AccountingDbContext> options) 
         ConfigureSales(builder);
         ConfigureReceivables(builder);
         ConfigurePayables(builder);
+        ConfigureCreditNotes(builder);
         ConfigureTax(builder);
         ConfigureStock(builder);
         ConfigureConsolidation(builder);
+    }
+
+    private static void ConfigureCreditNotes(ModelBuilder builder)
+    {
+        builder.Entity<SalesCreditNote>(e =>
+        {
+            e.Property(x => x.DocNo).HasMaxLength(40);
+            e.Property(x => x.CurrencyCode).HasMaxLength(3).IsFixedLength().IsRequired();
+            e.Property(x => x.FxRate).HasPrecision(19, 10);
+            e.Property(x => x.ReasonCode).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Memo).HasMaxLength(500);
+            e.Property(x => x.State).HasConversion<string>().HasMaxLength(20);
+
+            e.HasIndex(x => new { x.LegalEntityId, x.DocNo })
+                .IsUnique()
+                .HasFilter("doc_no IS NOT NULL");
+            e.HasIndex(x => x.SalesInvoiceId);
+            e.HasIndex(x => x.CustomerId);
+
+            e.HasOne(x => x.LegalEntity).WithMany()
+                .HasForeignKey(x => x.LegalEntityId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.SalesInvoice).WithMany()
+                .HasForeignKey(x => x.SalesInvoiceId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Customer).WithMany()
+                .HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.JournalEntry).WithMany()
+                .HasForeignKey(x => x.JournalEntryId).OnDelete(DeleteBehavior.Restrict);
+
+            e.Ignore(x => x.Total);
+            e.Ignore(x => x.TaxTotal);
+            e.Ignore(x => x.TotalWithTax);
+
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_sales_credit_note_posted_is_complete",
+                "(state = 'Draft' AND doc_no IS NULL AND journal_entry_id IS NULL) "
+                + "OR (state = 'Posted' AND doc_no IS NOT NULL AND journal_entry_id IS NOT NULL)"));
+        });
+
+        builder.Entity<SalesCreditNoteLine>(e =>
+        {
+            e.Property(x => x.Description).HasMaxLength(500).IsRequired();
+            e.Property(x => x.Quantity).HasPrecision(19, 4);
+            e.Property(x => x.UnitPrice).HasPrecision(19, 4);
+            e.Property(x => x.TaxRate).HasPrecision(9, 4);
+
+            e.HasIndex(x => new { x.SalesCreditNoteId, x.LineNo }).IsUnique();
+
+            e.HasOne(x => x.SalesCreditNote).WithMany(x => x.Lines)
+                .HasForeignKey(x => x.SalesCreditNoteId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.RevenueAccount).WithMany()
+                .HasForeignKey(x => x.RevenueAccountId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.TaxCode).WithMany()
+                .HasForeignKey(x => x.TaxCodeId).OnDelete(DeleteBehavior.Restrict);
+
+            e.Ignore(x => x.LineTotal);
+            e.Ignore(x => x.TaxAmount);
+            e.Ignore(x => x.LineTotalWithTax);
+
+            e.ToTable(t => t.HasCheckConstraint("ck_sales_credit_line_quantity", "quantity > 0"));
+            e.ToTable(t => t.HasCheckConstraint("ck_sales_credit_line_price", "unit_price > 0"));
+        });
+
+        builder.Entity<PurchaseCreditNote>(e =>
+        {
+            e.Property(x => x.DocNo).HasMaxLength(40);
+            e.Property(x => x.SupplierCreditNoteNo).HasMaxLength(80);
+            e.Property(x => x.CurrencyCode).HasMaxLength(3).IsFixedLength().IsRequired();
+            e.Property(x => x.FxRate).HasPrecision(19, 10);
+            e.Property(x => x.ReasonCode).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Memo).HasMaxLength(500);
+            e.Property(x => x.State).HasConversion<string>().HasMaxLength(20);
+
+            e.HasIndex(x => new { x.LegalEntityId, x.DocNo })
+                .IsUnique()
+                .HasFilter("doc_no IS NOT NULL");
+            e.HasIndex(x => x.PurchaseInvoiceId);
+            e.HasIndex(x => x.SupplierId);
+
+            e.HasOne(x => x.LegalEntity).WithMany()
+                .HasForeignKey(x => x.LegalEntityId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.PurchaseInvoice).WithMany()
+                .HasForeignKey(x => x.PurchaseInvoiceId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Supplier).WithMany()
+                .HasForeignKey(x => x.SupplierId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.JournalEntry).WithMany()
+                .HasForeignKey(x => x.JournalEntryId).OnDelete(DeleteBehavior.Restrict);
+
+            e.Ignore(x => x.Total);
+            e.Ignore(x => x.TaxTotal);
+            e.Ignore(x => x.TotalWithTax);
+
+            e.ToTable(t => t.HasCheckConstraint(
+                "ck_purchase_credit_note_posted_is_complete",
+                "(state = 'Draft' AND doc_no IS NULL AND journal_entry_id IS NULL) "
+                + "OR (state = 'Posted' AND doc_no IS NOT NULL AND journal_entry_id IS NOT NULL)"));
+        });
+
+        builder.Entity<PurchaseCreditNoteLine>(e =>
+        {
+            e.Property(x => x.Description).HasMaxLength(500).IsRequired();
+            e.Property(x => x.Quantity).HasPrecision(19, 4);
+            e.Property(x => x.UnitPrice).HasPrecision(19, 4);
+            e.Property(x => x.TaxRate).HasPrecision(9, 4);
+
+            e.HasIndex(x => new { x.PurchaseCreditNoteId, x.LineNo }).IsUnique();
+
+            e.HasOne(x => x.PurchaseCreditNote).WithMany(x => x.Lines)
+                .HasForeignKey(x => x.PurchaseCreditNoteId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.ChargeAccount).WithMany()
+                .HasForeignKey(x => x.ChargeAccountId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.TaxCode).WithMany()
+                .HasForeignKey(x => x.TaxCodeId).OnDelete(DeleteBehavior.Restrict);
+
+            e.Ignore(x => x.LineTotal);
+            e.Ignore(x => x.TaxAmount);
+            e.Ignore(x => x.LineTotalWithTax);
+            e.Ignore(x => x.ChargeAmount);
+
+            e.ToTable(t => t.HasCheckConstraint("ck_purchase_credit_line_quantity", "quantity > 0"));
+            e.ToTable(t => t.HasCheckConstraint("ck_purchase_credit_line_price", "unit_price > 0"));
+        });
     }
 
     private static void ConfigurePayables(ModelBuilder builder)

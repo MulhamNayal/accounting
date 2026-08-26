@@ -22,6 +22,7 @@ import { AgeingPage } from './pages/AgeingPage'
 import { BalanceSheetPage } from './pages/BalanceSheetPage'
 import { BillsPage } from './pages/BillsPage'
 import { ChartOfAccountsPage } from './pages/ChartOfAccountsPage'
+import { CreditNotesPage } from './pages/CreditNotesPage'
 import { EntitiesPage } from './pages/EntitiesPage'
 import { InvoicesPage } from './pages/InvoicesPage'
 import { JournalsPage } from './pages/JournalsPage'
@@ -158,6 +159,7 @@ function App() {
           <Route path="/invoices" element={<InvoicesPage entityId={selectedEntityId} />} />
           <Route path="/receipts" element={<ReceiptsPage entityId={selectedEntityId} />} />
           <Route path="/ageing" element={<AgeingPage entityId={selectedEntityId} />} />
+          <Route path="/credit-notes" element={<CreditNotesPage entityId={selectedEntityId} />} />
           <Route path="/bills" element={<BillsPage entityId={selectedEntityId} />} />
           <Route path="/payments" element={<SupplierPaymentsPage entityId={selectedEntityId} />} />
           <Route path="/payables-ageing" element={<PayablesAgeingPage entityId={selectedEntityId} />} />

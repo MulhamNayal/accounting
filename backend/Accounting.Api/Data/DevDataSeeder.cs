@@ -290,6 +290,9 @@ public static class DevDataSeeder
             // these is gapless.
             ("PurchaseInvoice", "PI", "Purchase Invoice", "PI-{1:yyyy}-{0:D5}", false),
             ("SupplierPayment", "PV", "Payment Voucher", "PV-{1:yyyy}-{0:D5}", false),
+            // Gapless: a credit note reduces tax owed, so a tax authority examines the
+            // sequence for exactly the same reason it examines sales invoices.
+            ("PurchaseCreditNote", "SC", "Supplier Credit Note", "SC-{1:yyyy}-{0:D5}", true),
         ];
 
         foreach (var entity in entities)

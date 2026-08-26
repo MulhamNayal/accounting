@@ -396,12 +396,19 @@ public sealed class ReceivablesService(
             .Select(g => new { InvoiceId = g.Key, Allocated = g.Sum(a => a.Amount) })
             .ToDictionaryAsync(x => x.InvoiceId, x => x.Allocated, ct);
 
+        var creditedByInvoice = await CreditedByInvoiceAsync(legalEntityId, ct);
+
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
         return invoices
             .Select(i =>
             {
-                var allocated = allocationsByInvoice.GetValueOrDefault(i.Id, 0m);
+                // Credits are folded into "allocated" rather than shown separately: from the
+                // invoice's point of view both are ways it stopped being owed, and keeping the
+                // total equal to the control account matters more than the distinction. The
+                // credit note itself records why.
+                var allocated = allocationsByInvoice.GetValueOrDefault(i.Id, 0m)
+                                + creditedByInvoice.GetValueOrDefault(i.Id, 0m);
                 var gross = i.TotalWithTax;
                 return new OpenInvoice(
                     i.Id, i.DocNo, i.DocDate, i.DueDate, i.CurrencyCode,
@@ -541,7 +548,32 @@ public sealed class ReceivablesService(
             .Where(a => a.SalesInvoiceId == invoice.Id)
             .SumAsync(a => (decimal?)a.Amount, ct) ?? 0m;
 
-        return gross - allocated;
+        var credited = (await CreditedByInvoiceAsync(invoice.LegalEntityId, ct))
+            .GetValueOrDefault(invoice.Id, 0m);
+
+        return gross - allocated - credited;
+    }
+
+    /// <summary>
+    /// Posted credit note totals per invoice.
+    /// </summary>
+    /// <remarks>
+    /// Only posted notes count: a draft is not in the books, so it has not reduced anything.
+    /// Lines are materialised rather than summed in SQL because a credit note's tax rounds per
+    /// line exactly as an invoice's does, and that arithmetic lives in the model.
+    /// </remarks>
+    private async Task<Dictionary<Guid, decimal>> CreditedByInvoiceAsync(
+        Guid legalEntityId, CancellationToken ct)
+    {
+        var notes = await db.SalesCreditNotes
+            .AsNoTracking()
+            .Include(n => n.Lines)
+            .Where(n => n.LegalEntityId == legalEntityId && n.State == DocumentState.Posted)
+            .ToListAsync(ct);
+
+        return notes
+            .GroupBy(n => n.SalesInvoiceId)
+            .ToDictionary(g => g.Key, g => g.Sum(n => n.TotalWithTax));
     }
 
     /// <summary>
