@@ -90,6 +90,11 @@ Lowercase, imperative, prefixed by area: `backend: ...`, `frontend: ...`, `fix: 
 **Use `git commit -F <file>`, never `-m`,** for anything multi-line or containing quotes —
 PowerShell mangles the argument and git treats the fragments as pathspecs.
 
+**Write that file without a BOM.** `Set-Content -Encoding utf8` in Windows PowerShell 5.1
+prepends one, and git keeps it, so every commit subject in this repo's history up to
+`203250e` begins with an invisible U+FEFF. Use
+`[System.IO.File]::WriteAllText($path, $text, (New-Object System.Text.UTF8Encoding($false)))`.
+
 **No AI attribution, no `Co-Authored-By`.** Commits should read like Mulham wrote them.
 
 ---

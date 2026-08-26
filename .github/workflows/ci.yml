@@ -1,6 +1,9 @@
 name: CI
 
 on:
+  # Manual dispatch so a run that fails to start -- a service container that would not come
+  # up, a transient runner problem -- can be retried without an empty commit.
+  workflow_dispatch:
   push:
     branches: [main]
   pull_request:
