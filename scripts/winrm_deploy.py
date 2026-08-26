@@ -18,6 +18,17 @@ FORWARDED = (
 )
 
 
+def env(name: str) -> str:
+    """Reads a secret, stripping surrounding whitespace.
+
+    A secret set by piping into `gh secret set` from PowerShell keeps the trailing CRLF the
+    pipeline adds, and GitHub stores it verbatim. A stray carriage return is invisible in
+    every log -- values are masked -- but it makes pywinrm reject the host outright, and it
+    would silently become part of the seeded password.
+    """
+    return os.environ[name].strip()
+
+
 def ps_literal(value: str) -> str:
     """Escapes a value for a PowerShell single-quoted string."""
     return value.replace("'", "''")
@@ -30,8 +41,8 @@ def main() -> int:
         return 1
 
     session = winrm.Session(
-        target=os.environ["EC2_HOST"],
-        auth=(os.environ["EC2_USER"], os.environ["EC2_PASS"]),
+        target=env("EC2_HOST"),
+        auth=(env("EC2_USER"), env("EC2_PASS")),
         transport="ntlm",
         server_cert_validation="ignore",
         operation_timeout_sec=1800,
@@ -56,7 +67,7 @@ Set-Content -Path '{url_file}' -Value '{bundle_url}' -NoNewline
         return 1
 
     assignments = "\n".join(
-        f"    $env:{name} = '{ps_literal(os.environ[name])}'" for name in FORWARDED
+        f"    $env:{name} = '{ps_literal(env(name))}'" for name in FORWARDED
     )
 
     # Keep this script small -- pywinrm base64-encodes it for -EncodedCommand. The real
