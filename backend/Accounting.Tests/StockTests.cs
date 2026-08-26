@@ -296,7 +296,7 @@ public class StockTests
         var adjustment = await reader.CostLayers.AsNoTracking()
             .FirstAsync(l => l.AdjustsLayerId == layer.Id);
         Assert.Equal(15m, adjustment.UnitCost);
-        // Brings no quantity of its own â€” it revises cost, it does not receive stock.
+        // Brings no quantity of its own — it revises cost, it does not receive stock.
         Assert.Equal(0m, adjustment.QuantityReceived);
     }
 

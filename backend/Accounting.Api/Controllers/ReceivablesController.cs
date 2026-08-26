@@ -41,7 +41,7 @@ public class AllocationsController(IReceivablesService receivables) : Controller
         => Ok(await receivables.AllocateAsync(request, cancellationToken));
 
     /// <summary>
-    /// Undoes an allocation by inserting a reversing row. Nothing is deleted â€” which invoice
+    /// Undoes an allocation by inserting a reversing row. Nothing is deleted — which invoice
     /// a payment was applied to is a fact worth keeping.
     /// </summary>
     [HttpPost("{id:guid}/unallocate")]

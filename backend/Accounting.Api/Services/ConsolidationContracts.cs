@@ -41,7 +41,7 @@ public record ConsolidationResult(
 /// <param name="EntityTotal">The entities' own balances, translated.</param>
 /// <param name="Eliminations">Removal of transactions within the group.</param>
 /// <param name="Translation">Residue from translating at differing rates.</param>
-/// <param name="Consolidated">The sum of the three â€” what the group reports.</param>
+/// <param name="Consolidated">The sum of the three — what the group reports.</param>
 public record ConsolidatedLine(
     Guid AccountId,
     string AccountCode,

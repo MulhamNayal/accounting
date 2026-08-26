@@ -30,13 +30,13 @@ public class Account
     public bool IsPostable { get; set; } = true;
 
     /// <summary>
-    /// If set, postings to this account must carry the corresponding dimension â€” a
+    /// If set, postings to this account must carry the corresponding dimension — a
     /// receivables posting must name a customer. Enforced at post time in Layer 1.
     /// </summary>
     public ControlType ControlType { get; set; } = ControlType.None;
 
     /// <summary>
-    /// Marks this as the account the system posts to for a specific purpose â€” exchange
+    /// Marks this as the account the system posts to for a specific purpose — exchange
     /// differences, the year-end profit transfer. Identified by role rather than by code,
     /// because the chart's numbering belongs to the customer.
     /// </summary>

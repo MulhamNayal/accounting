@@ -7,7 +7,7 @@ namespace Accounting.Api.Models;
 /// <remarks>
 /// This is the single place a financial fact is recorded. There is no separate sales or
 /// purchase ledger holding the same figure again, so a customer balance and its control
-/// account cannot disagree â€” they are the same rows, filtered differently. The dimensions
+/// account cannot disagree — they are the same rows, filtered differently. The dimensions
 /// below are what make that filtering possible.
 /// </remarks>
 public class Posting
@@ -39,7 +39,7 @@ public class Posting
 
     /// <summary>
     /// The same value in the entity's functional currency. Entries balance in this
-    /// currency, not the transaction one â€” different units cannot be summed.
+    /// currency, not the transaction one — different units cannot be summed.
     /// </summary>
     public decimal FunctionalAmount { get; set; }
 

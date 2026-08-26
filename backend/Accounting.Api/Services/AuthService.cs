@@ -47,7 +47,7 @@ public sealed class AuthService(
 
         var email = request.Email.Trim().ToLowerInvariant();
 
-        // Sign-in is the one operation that cannot already know its tenant Ã¢â‚¬â€ that is what it
+        // Sign-in is the one operation that cannot already know its tenant — that is what it
         // is establishing. Row level security would therefore hide every user row, so the
         // lookup goes through a SECURITY DEFINER function that returns one account by exact
         // email and nothing else. A deliberate, single-purpose bypass rather than granting

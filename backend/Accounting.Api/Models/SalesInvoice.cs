@@ -6,7 +6,7 @@ public enum DocumentState
     /// <summary>Freely editable, has no postings, and is not part of the books.</summary>
     Draft = 1,
 
-    /// <summary>Posted to the ledger. The one-way door â€” nothing about it changes again.</summary>
+    /// <summary>Posted to the ledger. The one-way door — nothing about it changes again.</summary>
     Posted = 2,
 }
 
@@ -20,7 +20,7 @@ public enum DocumentState
 /// is the single most common support burden in accounting software.
 /// <para>
 /// A draft is ordinary mutable data. Posting allocates a gapless document number, runs the
-/// posting rule, and writes an immutable journal entry â€” after which a database trigger
+/// posting rule, and writes an immutable journal entry — after which a database trigger
 /// refuses any further change to this row.
 /// </para>
 /// </remarks>
@@ -65,7 +65,7 @@ public class SalesInvoice
 
     public ICollection<SalesInvoiceLine> Lines { get; set; } = [];
 
-    /// <summary>Net of tax. Derived, never stored â€” a stored total is one that can drift.</summary>
+    /// <summary>Net of tax. Derived, never stored — a stored total is one that can drift.</summary>
     public decimal Total => Lines.Sum(l => l.LineTotal);
 
     /// <summary>Sum of the lines' tax, not a recomputation from the net total.</summary>
@@ -101,7 +101,7 @@ public class SalesInvoiceLine
     public Guid? AgentId { get; set; }
 
     /// <summary>
-    /// The tax treatment of this line. Null means no tax â€” which is different from a
+    /// The tax treatment of this line. Null means no tax — which is different from a
     /// zero-rated code, because a return has to distinguish "outside the regime" from
     /// "inside it at 0%".
     /// </summary>
@@ -123,7 +123,7 @@ public class SalesInvoiceLine
     /// </summary>
     /// <remarks>
     /// Per-line rounding is the common convention and keeps a line's tax reproducible on its
-    /// own. It means an invoice's tax may differ by a cent from rate Ã— total; that is
+    /// own. It means an invoice's tax may differ by a cent from rate × total; that is
     /// expected and is why the tax posting sums the lines rather than recomputing.
     /// </remarks>
     public decimal TaxAmount =>

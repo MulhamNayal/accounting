@@ -9,7 +9,7 @@ namespace Accounting.Tests;
 /// <remarks>
 /// Tests run against a real PostgreSQL instance, never an in-memory provider. Row level
 /// security, FORCE ROW LEVEL SECURITY and revoked privileges are precisely what is under
-/// test here, and no in-memory provider implements any of them Ã¢â‚¬â€ a suite that passed
+/// test here, and no in-memory provider implements any of them — a suite that passed
 /// against one would be actively misleading.
 /// <para>
 /// The fallback credentials below are local-development-only role names created by
@@ -32,7 +32,7 @@ public static class TestDatabase
         Environment.GetEnvironmentVariable("ACCOUNTING_TEST_DB_APP") ?? DefaultApp;
 
     /// <summary>
-    /// A context on the owner connection Ã¢â‚¬â€ schema work and arranging test data. No tenant
+    /// A context on the owner connection — schema work and arranging test data. No tenant
     /// interceptor, so the caller sets <c>app.current_tenant</c> explicitly.
     /// </summary>
     public static AccountingDbContext CreateOwnerContext() =>

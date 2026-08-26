@@ -2,7 +2,7 @@ namespace Accounting.Api.Models;
 
 /// <summary>
 /// The five classifications of the accounting equation. An account's normal balance is
-/// derived from this and never stored â€” a stored copy could disagree with the type.
+/// derived from this and never stored — a stored copy could disagree with the type.
 /// </summary>
 public enum AccountType
 {
@@ -51,7 +51,7 @@ public enum PostingDirection
 /// </summary>
 /// <remarks>
 /// Distinct from <see cref="ControlType"/>, which says an account's balance is composed of
-/// subledger detail. This says "when the system must post somewhere specific, post here" â€”
+/// subledger detail. This says "when the system must post somewhere specific, post here" —
 /// exchange differences on settlement, the year-end transfer of profit. Without it those
 /// accounts would have to be identified by code, and a chart is the customer's to renumber.
 /// </remarks>
@@ -74,7 +74,7 @@ public enum AccountSystemRole
     /// </summary>
     /// <remarks>
     /// Translating the balance sheet at closing rate and the income statement at average
-    /// rate does not balance, and that is not an error â€” it is a real consequence of the
+    /// rate does not balance, and that is not an error — it is a real consequence of the
     /// rates differing. IAS 21 takes the difference to a separate reserve in equity rather
     /// than to profit, because it is not a gain anyone realised.
     /// </remarks>

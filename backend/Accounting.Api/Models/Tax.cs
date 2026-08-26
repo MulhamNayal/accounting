@@ -11,7 +11,7 @@ namespace Accounting.Api.Models;
 /// </remarks>
 public enum TaxKind
 {
-    /// <summary>Sales tax with no input reclaim â€” Malaysia SST, most US state taxes.</summary>
+    /// <summary>Sales tax with no input reclaim — Malaysia SST, most US state taxes.</summary>
     SalesTax = 1,
 
     /// <summary>Service tax with no input reclaim.</summary>
@@ -23,7 +23,7 @@ public enum TaxKind
     /// <summary>Deducted at source and remitted on the payee's behalf.</summary>
     Withholding = 4,
 
-    /// <summary>In scope but exempt â€” no tax, and input tax may be irrecoverable.</summary>
+    /// <summary>In scope but exempt — no tax, and input tax may be irrecoverable.</summary>
     Exempt = 5,
 
     /// <summary>In scope at 0%. Distinct from exempt: input tax stays recoverable.</summary>
@@ -38,7 +38,7 @@ public enum TaxKind
 /// </summary>
 /// <remarks>
 /// The unit of internationalisation. Adding a country means adding a regime and its codes,
-/// not changing any posting logic â€” the rule reads <see cref="TaxCode.Rate"/> and
+/// not changing any posting logic — the rule reads <see cref="TaxCode.Rate"/> and
 /// <see cref="InputReclaimable"/> and does not know or care which country it is in.
 /// </remarks>
 public class TaxRegime
@@ -80,7 +80,7 @@ public class TaxRegime
 /// </summary>
 /// <remarks>
 /// Postings store the <c>TaxCodeId</c>, never the rate. Because postings are immutable, a
-/// document keeps the code it was posted under for good â€” which is how a superseded regime's
+/// document keeps the code it was posted under for good — which is how a superseded regime's
 /// history survives without being restated. A code is retired by setting
 /// <see cref="EffectiveTo"/>, never by editing its rate.
 /// </remarks>

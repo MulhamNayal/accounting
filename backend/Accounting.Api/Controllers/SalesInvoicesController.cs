@@ -35,7 +35,7 @@ public class SalesInvoicesController(ISalesInvoiceService invoices) : Controller
 
     /// <summary>
     /// Posts the draft: assigns a gapless number, runs the posting rule, writes the entry.
-    /// One way â€” there is no unpost.
+    /// One way — there is no unpost.
     /// </summary>
     [HttpPost("{id:guid}/post")]
     public async Task<ActionResult<SalesInvoiceDetail>> PostAsync(

@@ -91,7 +91,7 @@ export function SignInPage({ onSignedIn }: { onSignedIn: (session: Session) => v
           disabled={!email || !password || busy}
           onClick={() => void submit()}
         >
-          {busy ? 'Signing inâ€¦' : 'Sign in'}
+          {busy ? 'Signing in…' : 'Sign in'}
         </Button>
 
         <Caption1 className={styles.subtle}>

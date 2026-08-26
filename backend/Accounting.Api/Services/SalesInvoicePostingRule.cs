@@ -45,7 +45,7 @@ public sealed class SalesInvoicePostingRule : IPostingRule<SalesInvoice>
     /// its net, and credit output tax for the tax charged.
     /// </summary>
     /// <remarks>
-    /// The receivables line carries <c>CustomerId</c> â€” not optional. Receivables is a
+    /// The receivables line carries <c>CustomerId</c> — not optional. Receivables is a
     /// control account, so the database refuses a posting to it without a customer, and
     /// rightly: such a posting would count toward the control account while being invisible
     /// to the customer's own balance.
@@ -56,7 +56,7 @@ public sealed class SalesInvoicePostingRule : IPostingRule<SalesInvoice>
     /// </para>
     /// <para>
     /// Tax is grouped by code, not by line. A return is filed per code, so the ledger should
-    /// aggregate the same way â€” and the amount is the sum of the lines' already-rounded tax
+    /// aggregate the same way — and the amount is the sum of the lines' already-rounded tax
     /// rather than a fresh calculation, or the entry would fail to balance by a cent.
     /// </para>
     /// </remarks>

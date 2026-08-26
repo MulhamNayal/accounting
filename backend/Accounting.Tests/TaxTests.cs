@@ -160,7 +160,7 @@ public class TaxTests
         var receivable = entry.Lines.Single(l => l.AccountId == world.ReceivablesAccountId);
         Assert.Equal(1080m, receivable.FunctionalAmount);
 
-        // Revenue is credited net â€” tax was never income.
+        // Revenue is credited net — tax was never income.
         var revenue = entry.Lines.Single(l => l.AccountId == world.SalesAccountId);
         Assert.Equal(1000m, revenue.FunctionalAmount);
 
@@ -330,7 +330,7 @@ public class TaxTests
                 new CreateSalesInvoiceLineRequest("C", 1m, 33.33m, world.SalesAccountId, TaxCodeId: currentCode),
             ]));
 
-        // 8% of 33.33 is 2.6664 â†’ 2.67 per line, so 8.01 in total. Recomputing 8% of the
+        // 8% of 33.33 is 2.6664 → 2.67 per line, so 8.01 in total. Recomputing 8% of the
         // 99.99 net would give 8.00, and the entry would fail to balance by a cent.
         Assert.Equal(99.99m, draft.Total);
         Assert.Equal(8.01m, draft.TaxTotal);

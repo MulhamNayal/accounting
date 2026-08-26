@@ -210,13 +210,13 @@ export function AppShell({
               className={styles.entityPicker}
               aria-label="Active entity"
               placeholder="Select an entity"
-              value={selected ? `${selected.code} â€” ${selected.name}` : ''}
+              value={selected ? `${selected.code} — ${selected.name}` : ''}
               selectedOptions={selected ? [selected.id] : []}
               onOptionSelect={(_, data) => data.optionValue && onSelectEntity(data.optionValue)}
             >
               {entities.map((entity) => (
-                <Option key={entity.id} value={entity.id} text={`${entity.code} â€” ${entity.name}`}>
-                  {entity.code} â€” {entity.name}
+                <Option key={entity.id} value={entity.id} text={`${entity.code} — ${entity.name}`}>
+                  {entity.code} — {entity.name}
                 </Option>
               ))}
             </Dropdown>

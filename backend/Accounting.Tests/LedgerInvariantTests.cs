@@ -5,7 +5,7 @@ namespace Accounting.Tests;
 
 /// <summary>
 /// The guarantees Layer 1 exists to provide. Every one of these must be enforced by
-/// PostgreSQL, not by the application â€” a test that passes only because the service layer
+/// PostgreSQL, not by the application — a test that passes only because the service layer
 /// declined to try would prove nothing.
 /// </summary>
 [Collection(nameof(DatabaseCollection))]
@@ -96,7 +96,7 @@ public class LedgerInvariantTests
 
         var ex = await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
 
-        // Not a validation message from our code â€” PostgreSQL refusing the statement.
+        // Not a validation message from our code — PostgreSQL refusing the statement.
         Assert.Contains("permission denied", ex.GetBaseException().Message);
     }
 
@@ -143,7 +143,7 @@ public class LedgerInvariantTests
         await using var db = world.NewAppContext();
 
         // Without this, the posting counts toward the control account while being invisible
-        // to the derived subledger â€” exactly the drift this design exists to prevent.
+        // to the derived subledger — exactly the drift this design exists to prevent.
         db.JournalEntries.Add(LedgerFixture.Entry(
             world, "JV-00005",
             (world.ReceivablesAccountId, PostingDirection.Debit, 100m),

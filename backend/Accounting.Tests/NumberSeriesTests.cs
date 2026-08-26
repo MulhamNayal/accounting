@@ -190,7 +190,7 @@ public class NumberSeriesTests
             db, user, new NumberSeriesService(db),
             Microsoft.Extensions.Logging.Abstractions.NullLogger<PostingService>.Instance);
 
-        // Refused before the number is even reached â€” validation runs first.
+        // Refused before the number is even reached — validation runs first.
         await Assert.ThrowsAsync<PostingValidationException>(() => service.PostAsync(
             new PostJournalEntryRequest(
                 world.EntityId, August,

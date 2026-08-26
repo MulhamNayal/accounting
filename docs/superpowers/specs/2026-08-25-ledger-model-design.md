@@ -1,4 +1,4 @@
-# Accounting Ledger Model â€” Design
+# Accounting Ledger Model — Design
 
 Date: 2026-08-25
 Status: proposed, awaiting review
@@ -6,8 +6,8 @@ Status: proposed, awaiting review
 ## Overview
 
 This specifies the foundation of Accounting: how a financial fact is stored, corrected,
-constrained and reported. Everything else in the product â€” sales, purchasing, stock, tax,
-consolidation, the migration importer â€” is a consumer of what is defined here.
+constrained and reported. Everything else in the product — sales, purchasing, stock, tax,
+consolidation, the migration importer — is a consumer of what is defined here.
 
 It is one document rather than several because these decisions interlock. Specifying the
 posting model apart from inventory costing produces a posting primitive that cannot express
@@ -19,7 +19,7 @@ layered** (see *Build order*) so implementation can proceed in sequence.
 
 | Decision | Choice |
 |---|---|
-| Tenancy | Multi-tenant SaaS â€” one deployment, many customers |
+| Tenancy | Multi-tenant SaaS — one deployment, many customers |
 | Entities | Multi-entity per tenant, with consolidation |
 | Currency | Full multi-currency, including revaluation and translation |
 | Corrections | Immutable append-only ledger; edit = reverse + repost |
@@ -39,7 +39,7 @@ A measured examination of a production company file from the incumbent desktop s
   of sales invoices had been edited after posting.
 - Cancellation is a **boolean flag** on the document, not a reversing entry.
 - Documents are sometimes **deleted outright**.
-- The audit trail is a field-level `OLD`/`NEW` change log â€” and it is written **entirely by
+- The audit trail is a field-level `OLD`/`NEW` change log — and it is written **entirely by
   the application**. The database has zero triggers.
 - Period control is a single mutable table of permitted posting-date windows. There is no
   fiscal period entity and no concept of a closed year.
@@ -55,7 +55,7 @@ follows from that, and it is why immutability is structural rather than conventi
 
 A second, external constraint points the same way. Under Malaysia's e-Invoice regime, once
 an invoice is validated by LHDN it cannot be edited, and after the cancellation window it
-cannot be cancelled â€” corrections must be credit, debit or refund notes referencing the
+cannot be cancelled — corrections must be credit, debit or refund notes referencing the
 original. A mutable document model therefore needs *two* correction behaviours; an
 immutable one needs only the one it already has.
 
@@ -63,7 +63,7 @@ immutable one needs only the one it already has.
 > correction rules against LHDN's latest published guidance. This has changed repeatedly
 > and is not evidenced by the research file, which contains no e-invoice activity.
 
-## Layer 0 â€” Tenancy, entities, accounts
+## Layer 0 — Tenancy, entities, accounts
 
 ```
 tenant           id, name, created_at_utc
@@ -75,7 +75,7 @@ entity           id, tenant_id, code, name, registration_no, tax_id,
 Every business table below carries `tenant_id`. Isolation is enforced by **PostgreSQL Row
 Level Security**, with a policy on `tenant_id` matching a session variable set per request.
 The application role is granted no `BYPASSRLS`. A forgotten predicate in a query therefore
-cannot return another tenant's rows â€” isolation does not depend on the correctness of every
+cannot return another tenant's rows — isolation does not depend on the correctness of every
 query.
 
 `tax_id` is per entity because e-Invoice identity is per TIN, and each entity files
@@ -93,7 +93,7 @@ entity_account   entity_id, account_id, is_active, local_name
 is derived from type, never stored: assets and expenses are debit-normal, the rest
 credit-normal. Storing it invites disagreement with the type.
 
-`control_type` marks accounts whose balance is *composed of* subledger detail â€” `AR`, `AP`,
+`control_type` marks accounts whose balance is *composed of* subledger detail — `AR`, `AP`,
 `Stock`, `Tax`, `Bank`. Postings to a control account **must** carry the corresponding
 dimension (a receivables posting must name a customer). This is what makes derived
 subledgers possible, and it is enforced as a check at post time.
@@ -102,7 +102,7 @@ Only leaf accounts are postable; parents exist for rollup. The chart lives at te
 `entity_account` activates accounts per entity and allows a local label. Because both
 entities share account codes, consolidation needs no mapping table.
 
-## Layer 1 â€” The posting core
+## Layer 1 — The posting core
 
 This is the heart of the system, and the only part that must be perfect.
 
@@ -136,8 +136,8 @@ posting
 
 ### Why one table
 
-A sales invoice for RM1,000 produces exactly two rows â€” a debit to receivables and a credit
-to income â€” both tagged with the customer. "What does this customer owe" and "what is the
+A sales invoice for RM1,000 produces exactly two rows — a debit to receivables and a credit
+to income — both tagged with the customer. "What does this customer owe" and "what is the
 receivables balance" are then two queries over *the same rows*, and cannot disagree.
 
 The alternative, a separate AR ledger posting summaries into the GL, stores the same fact
@@ -145,7 +145,7 @@ twice and makes subledger-to-control-account drift a permanent operational burde
 drift is one of the most common and most expensive defect classes in accounting software.
 Here it is not unlikely; it is unrepresentable.
 
-Dimensions carry the reporting axes the market demands â€” the incumbent's invoice table
+Dimensions carry the reporting axes the market demands — the incumbent's invoice table
 carries area, agent and project, so agent commission and project profitability are expected
 features. Deriving them from postings means they always reconcile to the ledger.
 
@@ -174,13 +174,13 @@ requires `item_id`. Without this, a derived subledger silently loses rows.
 No `update_count`, no `is_cancelled`, no change-log table. The absence is deliberate and is
 the design. A column that records mutation implies mutation is possible.
 
-## Layer 1a â€” Corrections
+## Layer 1a — Corrections
 
 A posted entry is never touched. Two operations exist.
 
 **Reverse.** Insert a new `journal_entry` with `reverses_entry_id` pointing at the original
 and postings mirroring it with directions flipped. Same amounts, same dimensions, same
-functional amounts â€” so the pair sums to zero and neither row moved.
+functional amounts — so the pair sums to zero and neither row moved.
 
 **Repost.** Insert a further new entry with `supersedes_entry_id` pointing at the reversed
 original, carrying the corrected figures.
@@ -191,7 +191,7 @@ the immutability grant forbids. Nothing about a posted entry ever changes, inclu
 links.
 
 The current state of a document is therefore *derived*: the entry in its chain with no
-successor. For query speed a `document_current_entry` projection may cache this â€” clearly
+successor. For query speed a `document_current_entry` projection may cache this — clearly
 labelled a cache, rebuildable by replay, never a source of truth.
 
 The user-facing Edit action performs reverse-and-repost in one transaction. Users get the
@@ -202,7 +202,7 @@ convenience does not come at the cost of a day book that looks like noise.
 `reason_code` is mandatory on any entry carrying `reverses_entry_id`. A correction without a
 stated reason is the thing an auditor asks about.
 
-## Layer 1b â€” Currency
+## Layer 1b — Currency
 
 Each entity has a functional currency. Every posting stores the transaction amount and
 currency, the functional amount, and the rate used. The rate is stored, not looked up later,
@@ -226,7 +226,7 @@ reversible and auditable like any other.
 balance-sheet items at closing rate, income-statement items at period-average rate, the
 difference to a currency translation reserve. Covered in Layer 6.
 
-## Layer 1c â€” Periods and closing
+## Layer 1c — Periods and closing
 
 ```
 fiscal_year     id, tenant_id, entity_id, code, start_date, end_date, state
@@ -238,21 +238,21 @@ period_event    id, period_id, from_state, to_state, at_utc, by_user_id, reason
 `state` is `Open`, `SoftClosed`, or `HardClosed`.
 
 - Posting is permitted only into an `Open` period. The period is resolved from
-  `entry_date`, not from the wall clock â€” back-dating into an open period is normal and
+  `entry_date`, not from the wall clock — back-dating into an open period is normal and
   allowed.
 - `SoftClosed` blocks posting but may be reopened by an authorised role. Every transition
   writes a `period_event` row, including who and why. `period_event` is append-only.
-- `HardClosed` is terminal. **No transition out of it exists in the model** â€” not a
+- `HardClosed` is terminal. **No transition out of it exists in the model** — not a
   permission check that could be granted, an absent code path.
 - Year-end close posts a closing entry moving income and expense balances to retained
   earnings, then hard-closes every period in the year. It is itself a journal entry, so it
   is visible and reversible until the year is hard-closed.
 
 This is deliberately stricter than the incumbent, which has no close at all. An immutable
-ledger whose periods reopen indefinitely is not meaningfully immutable â€” the guarantee has
+ledger whose periods reopen indefinitely is not meaningfully immutable — the guarantee has
 to terminate somewhere.
 
-## Layer 2 â€” Document numbering
+## Layer 2 — Document numbering
 
 ```
 number_series    id, tenant_id, entity_id, doc_type, format,
@@ -261,27 +261,27 @@ number_counter   series_id, period_key, next_number
 ```
 
 `format` is a template (`IV-{0:D5}`, `INV/{yyyy}/{0:D4}`). Multiple active series per
-document type are supported â€” the research file shows two concurrent invoice series in one
+document type are supported — the research file shows two concurrent invoice series in one
 company, so this is a real requirement, not flexibility for its own sake.
 
 **Gapless series** (sales invoices, credit notes, debit notes) allocate inside the same
 transaction that commits the document, taking a row lock on `number_counter`. If the
 transaction rolls back, so does the increment, so no number is burned. This serialises
-inserts within a single `(entity, doc_type, period)` â€” an accepted cost, paid only where a
+inserts within a single `(entity, doc_type, period)` — an accepted cost, paid only where a
 tax authority actually examines the sequence.
 
 **Gappy series** (journals, receipts, stock movements) draw from a Postgres sequence.
 Fast, concurrent, and may skip on rollback.
 
 Reversals **consume a number** from the same series. A voided invoice therefore appears as a
-visible pair rather than a hole â€” which is the whole point of a dense sequence.
+visible pair rather than a hole — which is the whole point of a dense sequence.
 
 Measured on the research file, the incumbent's invoice sequence had **24,419 missing
 numbers** across its span, a second series whose suffixes were not numeric at all, and one
 document numbered `#NA`. Accounting's own numbering is strict; the **importer must not assume
 incoming numbers are parseable, unique in format, or dense** (Layer 7).
 
-## Layer 2a â€” Documents and posting rules
+## Layer 2a — Documents and posting rules
 
 Documents are stored per type, because a sales invoice, a payment and a stock issue have
 genuinely different fields:
@@ -298,24 +298,24 @@ derived from its postings and allocations. This is what prevents a document from
 contradicting the ledger.
 
 A **posting rule** per document type translates a document into its posting set. Rules are
-code, not configuration â€” configurable posting rules are a large feature with no first
+code, not configuration — configurable posting rules are a large feature with no first
 customer, and YAGNI applies. Each rule is a pure function from document to posting set,
 which makes it directly unit-testable against expected debits and credits.
 
 Critically, a rule runs **once**, at post time, and its output is frozen. Postings are never
 re-derived. If a rule is later found wrong, the fix is a correcting entry for affected
-documents â€” never a recomputation, which would silently restate reported history.
+documents — never a recomputation, which would silently restate reported history.
 
 Document state is `Draft` or `Posted`. Drafts are freely editable and have no postings.
 Posting is the one-way door.
 
-## Layer 3 â€” Receivables, payables and allocation
+## Layer 3 — Receivables, payables and allocation
 
 There are no AR or AP ledger tables. A customer's balance is the sum of postings to
 receivables control accounts carrying that `customer_id`. Ageing buckets by the source
 document's due date.
 
-What cannot be derived is **which invoice a payment settles** â€” that is a decision, not a
+What cannot be derived is **which invoice a payment settles** — that is a decision, not a
 calculation:
 
 ```
@@ -337,7 +337,7 @@ not delete. Realised FX on settlement is computed here and posted through
 Outstanding on an invoice = its receivable posting total less the sum of allocations against
 it. Derived, therefore always consistent.
 
-## Layer 4 â€” Tax and e-Invoice
+## Layer 4 — Tax and e-Invoice
 
 ```
 tax_code   id, tenant_id, code, name, tax_type, rate,
@@ -345,7 +345,7 @@ tax_code   id, tenant_id, code, name, tax_type, rate,
 ```
 
 Postings store `tax_code_id`, not a rate. Because postings are immutable, a document posted
-under a superseded regime keeps its original code permanently â€” which is how the GST-to-SST
+under a superseded regime keeps its original code permanently — which is how the GST-to-SST
 transition is handled. Historical documents are **not** restated under current rules;
 `effective_from`/`effective_to` make the old codes inactive for new posting while leaving
 history intact. The research file carries both `GST_*` and `SST_*` structures, confirming
@@ -365,13 +365,13 @@ the latest event.
 The rule that ties this to Layer 1a: **once a submission reaches validated, the underlying
 document may not be superseded.** The Edit action is refused, and the UI offers a credit or
 debit note instead. This is the external constraint made structural, and it is the reason
-the immutable model is simpler here than a mutable one â€” there is no second correction
+the immutable model is simpler here than a mutable one — there is no second correction
 behaviour to build.
 
 `payload_hash` records exactly what was submitted, so a later dispute can be settled against
 what the authority received rather than what the document says now.
 
-## Layer 5 â€” Inventory and FIFO costing
+## Layer 5 — Inventory and FIFO costing
 
 ```
 stock_move      id, tenant_id, entity_id, item_id, location_id,
@@ -390,7 +390,7 @@ A receipt creates a `cost_layer`. An issue creates `cost_consumption` rows again
 oldest layers with quantity remaining, and COGS is the sum of what was actually consumed.
 
 **`cost_layer` has no `qty_remaining` column.** Remaining quantity is `qty_received` minus
-the sum of consumptions against that layer â€” derived, because a stored remainder would be a
+the sum of consumptions against that layer — derived, because a stored remainder would be a
 mutable field on an append-only table.
 
 For query speed this is cached in a **separate** `cost_layer_remaining` projection, not as a
@@ -406,30 +406,30 @@ corrected to RM15, and some of that stock has already been sold.
 Under a mutable design you would edit the layer and recompute. Here you cannot, and the
 correct accounting is better anyway:
 
-1. The correction is a **document** â€” a supplier debit note or purchase price adjustment â€”
+1. The correction is a **document** — a supplier debit note or purchase price adjustment —
    not an edit.
 2. Its posting rule splits the difference by where the stock now is:
-   - quantity **still on hand** â†’ adjust the inventory asset account (the stock is genuinely
+   - quantity **still on hand** → adjust the inventory asset account (the stock is genuinely
      worth more)
-   - quantity **already sold** â†’ adjust cost of goods sold
+   - quantity **already sold** → adjust cost of goods sold
 3. Those adjustments post into the **current open period**, dated there, never into a closed
    one.
 4. A **new** `cost_layer` row, linked to the original by `adjusts_layer_id`, records the
    revised cost basis for the quantity still on hand, so future issues consume at the
-   corrected cost. The original layer is never modified â€” its consumptions already posted
+   corrected cost. The original layer is never modified — its consumptions already posted
    at the cost that was true when they happened.
 
 History is never rewritten. Prior-period figures stand as reported, and the correction is
-visible as a correction â€” which is what an auditor needs and what the incumbent's silent
+visible as a correction — which is what an auditor needs and what the incumbent's silent
 recompute cannot provide.
 
 > Out of scope for this spec: weighted-average and standard costing, serial-number tracking,
 > bills of material, and manufacturing. FIFO layers can derive an average later; the reverse
 > is not true, which is why layers are the foundation.
 
-## Layer 6 â€” Consolidation
+## Layer 6 — Consolidation
 
-Entities in one tenant share a chart of accounts, so consolidation is a sum â€” with two
+Entities in one tenant share a chart of accounts, so consolidation is a sum — with two
 adjustments.
 
 **Intercompany elimination.** A posting arising from a transaction with a sister entity
@@ -454,13 +454,13 @@ consolidated figure can always be traced to its parts.
 Group-level consolidation postings are held separately from entity postings. They are not
 entity books and must never appear in a statutory filing for a single entity.
 
-## Layer 7 â€” Migration importer
+## Layer 7 — Migration importer
 
 The commercially decisive feature, and the one with the strictest correctness bar: it runs
 once per customer, against books they already rely on.
 
 **Source.** Customer-owned exports, and optionally a direct read of the source database
-performed by a connector the customer runs. Working from documented exports is preferred â€”
+performed by a connector the customer runs. Working from documented exports is preferred —
 an undocumented internal schema changes between vendor versions with no notice.
 
 **The central rule: imported data goes through the normal posting path.** The importer
@@ -477,7 +477,7 @@ Consequences, each grounded in what the research file actually contained:
 | 24,419 gaps in one sequence | Gaps are not errors and must not be reconstructed or back-filled. |
 | Both GST and SST regimes present | Historical tax codes are imported as inactive codes with their original effective dates. |
 | ~71% of source tables are transient working tables | The importer ignores anything matching the transient pattern rather than attempting interpretation. |
-| Source documents carry edit history in a change log | Only the current state of each document is imported. The source's audit log is imported, if at all, as read-only reference data â€” never as Accounting postings. |
+| Source documents carry edit history in a change log | Only the current state of each document is imported. The source's audit log is imported, if at all, as read-only reference data — never as Accounting postings. |
 
 **Opening balances.** Rather than importing years of detail by default, the standard path is
 a single opening journal entry per entity at the migration cut-off date, plus open AR/AP
@@ -508,7 +508,7 @@ The invariants are the specification, so they are tested as properties rather th
 
 Backend tests use xUnit against a **real PostgreSQL instance**, never an in-memory provider.
 RLS, deferred constraint triggers and revoked privileges are the things under test, and an
-in-memory provider implements none of them â€” a green suite against one would be actively
+in-memory provider implements none of them — a green suite against one would be actively
 misleading.
 
 Locally that is a natively-installed PostgreSQL with a dedicated test database, created and
@@ -524,7 +524,7 @@ configuration, so neither environment is special-cased in test code.
 1. EF Core code-first migrations are the only source of truth. The schema is never
    hand-edited.
 2. Every generated migration is read before it is applied, with particular attention to
-   `defaultValue` on new non-nullable columns â€” EF emits the CLR default, which rewrites
+   `defaultValue` on new non-nullable columns — EF emits the CLR default, which rewrites
    existing rows.
 3. Released migrations are immutable. Mistakes are corrected by a new migration.
 4. Deploys apply an idempotent script generated at build time, before the application
@@ -550,7 +550,7 @@ in a working state.
 | 6 | Consolidation, eliminations, translation | Holdings + Realty consolidate with intercompany removed |
 | 7 | Migration importer | A source trial balance reconciles to zero, or the run fails |
 
-Layers 0â€“3 are the minimum coherent accounting system. Layer 7 is the commercial unlock and
+Layers 0–3 are the minimum coherent accounting system. Layer 7 is the commercial unlock and
 depends on everything before it.
 
 ## Explicitly out of scope
@@ -560,7 +560,7 @@ manufacturing and bills of material, budgeting, weighted-average and standard co
 configurable posting rules, and approval workflows beyond a document's Draft/Posted state.
 
 Each is a consumer of this ledger, not a change to it. None should require revisiting the
-posting model â€” and if one does, that is a defect in this design worth fixing now.
+posting model — and if one does, that is a defect in this design worth fixing now.
 
 ## Open questions
 

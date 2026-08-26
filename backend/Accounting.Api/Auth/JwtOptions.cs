@@ -8,7 +8,7 @@ public sealed class JwtOptions
     public const string SectionName = "Jwt";
 
     /// <summary>
-    /// Symmetric signing key. Must be at least 32 bytes Ã¢â‚¬â€ HMAC-SHA256 offers no more
+    /// Symmetric signing key. Must be at least 32 bytes — HMAC-SHA256 offers no more
     /// security than the key it is given, and a short key makes every token forgeable.
     /// </summary>
     /// <remarks>

@@ -38,7 +38,7 @@ public class StockController(IStockService stock) : ControllerBase
         => Ok(await stock.IssueAsync(request, cancellationToken));
 
     /// <summary>
-    /// Corrects the cost of a receipt already made. Never an edit â€” the difference is split
+    /// Corrects the cost of a receipt already made. Never an edit — the difference is split
     /// between stock still held and stock already sold, and posted into the current period.
     /// </summary>
     [HttpPost("adjust-cost")]
@@ -46,7 +46,7 @@ public class StockController(IStockService stock) : ControllerBase
         [FromBody] AdjustCostRequest request, CancellationToken cancellationToken)
         => Ok(await stock.AdjustCostAsync(request, cancellationToken));
 
-    /// <summary>Quantity and value on hand, both derived â€” nothing stored.</summary>
+    /// <summary>Quantity and value on hand, both derived — nothing stored.</summary>
     [HttpGet("on-hand")]
     public async Task<ActionResult<IReadOnlyList<StockOnHand>>> OnHandAsync(
         [FromQuery] Guid entityId, CancellationToken cancellationToken)

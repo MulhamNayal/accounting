@@ -155,7 +155,7 @@ public class SalesInvoiceTests
         var invoice = await editor.SalesInvoices.FirstAsync(i => i.Id == draft.Id);
         invoice.Memo = "revised before posting";
 
-        // A draft is ordinary mutable data â€” the freeze applies only once posted.
+        // A draft is ordinary mutable data — the freeze applies only once posted.
         await editor.SaveChangesAsync();
 
         Assert.Equal("revised before posting",

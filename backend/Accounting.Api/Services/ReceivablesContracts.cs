@@ -57,7 +57,7 @@ public record CustomerBalance(
 
 /// <summary>
 /// An ageing report. <see cref="Total"/> must equal the receivables control account
-/// balance in the trial balance â€” they are computed from the same postings, so a
+/// balance in the trial balance — they are computed from the same postings, so a
 /// difference would mean a defect rather than a reconciliation task.
 /// </summary>
 public record AgeingReport(

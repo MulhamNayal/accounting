@@ -162,13 +162,13 @@ public sealed class ConsolidationService(
     /// </summary>
     /// <remarks>
     /// A management fee charged by one entity to another is income to the first and expense
-    /// to the second. At group level neither happened â€” no money left the group â€” so both
+    /// to the second. At group level neither happened — no money left the group — so both
     /// sides are reversed. Leaving them in inflates revenue and costs by the same amount,
     /// which flatters turnover without changing profit and is exactly the kind of thing an
     /// auditor looks for.
     /// <para>
     /// Only postings that name a sister entity are eliminated. That marking is a deliberate
-    /// act at posting time, not a guess made here by matching amounts â€” inferring
+    /// act at posting time, not a guess made here by matching amounts — inferring
     /// intercompany from coincidence would eliminate real third-party trade.
     /// </para>
     /// </remarks>
@@ -228,7 +228,7 @@ public sealed class ConsolidationService(
     /// <remarks>
     /// Not an error and not a plug. Translating the balance sheet at one rate and the income
     /// statement at another cannot balance, and IAS 21 puts the difference in a separate
-    /// equity reserve rather than in profit â€” because nobody realised a gain, the rates
+    /// equity reserve rather than in profit — because nobody realised a gain, the rates
     /// simply moved.
     /// </remarks>
     private async Task<ConsolidationPosting?> BuildTranslationResidueAsync(
@@ -408,7 +408,7 @@ public sealed class ConsolidationService(
     /// </summary>
     /// <remarks>
     /// Defaulting to 1 would silently report a foreign entity as though its currency were the
-    /// group's â€” a wrong number that looks entirely plausible. Failing loudly is the only
+    /// group's — a wrong number that looks entirely plausible. Failing loudly is the only
     /// safe behaviour.
     /// </remarks>
     private async Task<decimal> RequireRateAsync(

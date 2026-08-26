@@ -22,7 +22,7 @@ public class ConsolidationController(IConsolidationService consolidation) : Cont
     /// </summary>
     /// <remarks>
     /// Stored rather than recomputed on demand, so a published consolidated statement stays
-    /// reproducible â€” recomputing later would pick up rates and eliminations as they stand
+    /// reproducible — recomputing later would pick up rates and eliminations as they stand
     /// then, and the figures somebody signed would no longer be the figures reported.
     /// </remarks>
     [HttpPost("runs")]
@@ -53,8 +53,8 @@ public class ExchangeRatesController(IExchangeRateService rates) : ControllerBas
         => Ok(await rates.ListAsync(cancellationToken));
 
     /// <summary>
-    /// Records or corrects a rate. Nothing already posted depends on it â€” postings store the
-    /// rate they were made at â€” so correcting one never restates a historical figure.
+    /// Records or corrects a rate. Nothing already posted depends on it — postings store the
+    /// rate they were made at — so correcting one never restates a historical figure.
     /// </summary>
     [HttpPut]
     public async Task<ActionResult<ExchangeRateSummary>> UpsertAsync(

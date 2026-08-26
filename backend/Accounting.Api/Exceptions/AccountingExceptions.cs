@@ -4,7 +4,7 @@ namespace Accounting.Api.Exceptions;
 public class NotFoundException(string message) : Exception(message);
 
 /// <summary>
-/// The request was understood but is not a valid accounting operation â€” an unbalanced
+/// The request was understood but is not a valid accounting operation — an unbalanced
 /// entry, a posting to a heading account, a closed period. Maps to 400.
 /// </summary>
 public class PostingValidationException(string message) : Exception(message);

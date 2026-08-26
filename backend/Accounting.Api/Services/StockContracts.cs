@@ -23,7 +23,7 @@ public record ReceiveStockRequest(
     decimal Quantity,
     decimal UnitCost,
     DateOnly MovedOn,
-    /// <summary>What is credited â€” trade payables, an accrual, or an opening-balance account.</summary>
+    /// <summary>What is credited — trade payables, an accrual, or an opening-balance account.</summary>
     Guid CreditAccountId,
     Guid? SupplierId = null,
     string? Description = null);
@@ -48,7 +48,7 @@ public record AdjustCostRequest(
     Guid CostLayerId,
     decimal CorrectedUnitCost,
     DateOnly AdjustedOn,
-    /// <summary>What the difference is charged to or credited from â€” usually trade payables.</summary>
+    /// <summary>What the difference is charged to or credited from — usually trade payables.</summary>
     Guid CounterAccountId,
     string? Reason = null);
 
@@ -65,7 +65,7 @@ public record StockMoveSummary(
     string? Description);
 
 /// <summary>
-/// Quantity and value on hand, both derived â€” quantity from the moves, value from the
+/// Quantity and value on hand, both derived — quantity from the moves, value from the
 /// unconsumed layers.
 /// </summary>
 public record StockOnHand(
@@ -111,7 +111,7 @@ public record ConsumptionDetail(
 /// <remarks>
 /// The quantity still on hand is worth more or less than recorded, so that share adjusts
 /// inventory. The quantity already sold was costed wrong, so that share adjusts cost of
-/// sales â€” in the current open period, never by restating the original.
+/// sales — in the current open period, never by restating the original.
 /// </remarks>
 public record CostAdjustmentResult(
     Guid NewLayerId,

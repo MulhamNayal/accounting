@@ -1,7 +1,7 @@
 namespace Accounting.Api.Models;
 
 /// <summary>
-/// One legal company within a tenant â€” "Holdings" and "Realty" are two of these, not two
+/// One legal company within a tenant — "Holdings" and "Realty" are two of these, not two
 /// tenants. Each keeps its own books, financial year and tax identity, but they share a
 /// chart of accounts and customer master so they can be consolidated.
 /// </summary>

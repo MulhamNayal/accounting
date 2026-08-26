@@ -3,7 +3,7 @@ namespace Accounting.Api.Models;
 /// <summary>
 /// One posting period, normally a calendar month within a <see cref="FiscalYear"/>.
 /// The period an entry belongs to is resolved from its accounting date, not from the wall
-/// clock â€” back-dating into an open period is ordinary and permitted.
+/// clock — back-dating into an open period is ordinary and permitted.
 /// </summary>
 public class AccountingPeriod
 {

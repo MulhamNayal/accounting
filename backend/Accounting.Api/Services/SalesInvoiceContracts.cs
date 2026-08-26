@@ -18,7 +18,7 @@ public record CreateSalesInvoiceLineRequest(
     Guid RevenueAccountId,
     Guid? ProjectId = null,
     Guid? AgentId = null,
-    /// <summary>Null means outside the tax regime â€” not the same as zero-rated.</summary>
+    /// <summary>Null means outside the tax regime — not the same as zero-rated.</summary>
     Guid? TaxCodeId = null);
 
 public record SalesInvoiceSummary(
@@ -70,7 +70,7 @@ public record SalesInvoiceLineDetail(
     decimal TaxRate,
     decimal TaxAmount);
 
-/// <summary>Returned by <see cref="ICustomerService"/>. No balance â€” that comes from postings.</summary>
+/// <summary>Returned by <see cref="ICustomerService"/>. No balance — that comes from postings.</summary>
 public record CustomerSummary(
     Guid Id,
     string Code,

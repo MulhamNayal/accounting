@@ -9,7 +9,7 @@ namespace Accounting.Api.Models;
 /// the two sides up and every address change has to be made twice.
 /// <para>
 /// There is no balance field here. What a customer owes is the sum of postings to a
-/// receivables control account carrying their id â€” the same rows the control account itself
+/// receivables control account carrying their id — the same rows the control account itself
 /// is computed from, so the two cannot disagree.
 /// </para>
 /// </remarks>
@@ -26,7 +26,7 @@ public class Customer
     /// <summary>Company registration number.</summary>
     public string? RegistrationNo { get; set; }
 
-    /// <summary>Tax identification number â€” required on an e-Invoice from Layer 4.</summary>
+    /// <summary>Tax identification number — required on an e-Invoice from Layer 4.</summary>
     public string? TaxId { get; set; }
 
     public string? Email { get; set; }

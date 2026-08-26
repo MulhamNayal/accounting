@@ -31,7 +31,7 @@ public interface IReceivablesService
 /// </summary>
 /// <remarks>
 /// There is no AR ledger table. A customer's balance is the sum of postings to receivables
-/// control accounts carrying their id â€” the very rows the control account itself is computed
+/// control accounts carrying their id — the very rows the control account itself is computed
 /// from. The two therefore cannot drift apart, which is the whole reason the ledger has one
 /// posting table rather than a general ledger plus subledgers that are supposed to agree.
 /// </remarks>
@@ -569,7 +569,7 @@ public sealed class ReceivablesService(
         var entity = await db.LegalEntities.FirstAsync(e => e.Id == receipt.LegalEntityId, ct);
         var amount = Math.Abs(difference);
 
-        // difference > 0: the receivable was carried at more than was realised â€” a loss, so
+        // difference > 0: the receivable was carried at more than was realised — a loss, so
         // receivables is credited down and the loss is debited.
         var receivablesSide = difference > 0
             ? nameof(PostingDirection.Credit)

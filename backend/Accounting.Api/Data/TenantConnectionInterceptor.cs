@@ -13,8 +13,8 @@ namespace Accounting.Api.Data;
 /// would leak one tenant's setting into another tenant's request.
 /// <para>
 /// When no tenant is set the value is written as an empty string, which matches no row.
-/// Failing closed matters more than a helpful error: the alternative â€” leaving the
-/// previous value in place â€” would serve another tenant's data.
+/// Failing closed matters more than a helpful error: the alternative — leaving the
+/// previous value in place — would serve another tenant's data.
 /// </para>
 /// </remarks>
 public sealed class TenantConnectionInterceptor(ITenantContext tenantContext) : DbConnectionInterceptor

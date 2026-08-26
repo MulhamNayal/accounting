@@ -17,7 +17,7 @@ public interface IExchangeRateService
 /// Rates used for translation and revaluation.
 /// </summary>
 /// <remarks>
-/// Not used to value a transaction after the fact â€” postings store the rate they were made
+/// Not used to value a transaction after the fact — postings store the rate they were made
 /// at, so a historical figure never changes when a rate is corrected here.
 /// </remarks>
 public sealed class ExchangeRateService(AccountingDbContext db, ITenantContext tenantContext)

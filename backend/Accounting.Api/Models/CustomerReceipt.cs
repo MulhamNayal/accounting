@@ -58,7 +58,7 @@ public class CustomerReceipt
 /// </summary>
 /// <remarks>
 /// Append-only. Un-allocating inserts a reversing row rather than deleting, because how
-/// money was applied is itself a fact worth keeping â€” a customer disputing which invoice
+/// money was applied is itself a fact worth keeping — a customer disputing which invoice
 /// their payment cleared is a real conversation, and "we changed our minds and there is no
 /// record" is not an answer.
 /// <para>
@@ -92,7 +92,7 @@ public class Allocation
     /// <summary>
     /// The exchange difference realised by this settlement: the allocated amount at the
     /// invoice's rate less the same amount at the receipt's rate. Positive means the
-    /// receivable was carried at more than was actually realised â€” a loss.
+    /// receivable was carried at more than was actually realised — a loss.
     /// </summary>
     public decimal FxGainLossFunctional { get; set; }
 

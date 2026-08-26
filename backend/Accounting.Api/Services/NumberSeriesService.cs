@@ -47,7 +47,7 @@ public sealed class NumberSeriesService(AccountingDbContext db) : INumberSeriesS
     }
 
     /// <summary>
-    /// Locks the counter row, reads it, and increments â€” all inside the caller's transaction.
+    /// Locks the counter row, reads it, and increments — all inside the caller's transaction.
     /// </summary>
     private async Task<long> TakeNextAsync(NumberSeries series, string periodKey, CancellationToken ct)
     {

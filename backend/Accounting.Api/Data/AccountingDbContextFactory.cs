@@ -8,8 +8,8 @@ namespace Accounting.Api.Data;
 /// </summary>
 /// <remarks>
 /// Migrations connect as <c>accounting_owner</c>, not as the application role. The
-/// application deliberately lacks the privileges to alter schema Ã¢â‚¬â€ and from Layer 1 it
-/// lacks UPDATE and DELETE on the ledger tables entirely Ã¢â‚¬â€ so it could not apply a
+/// application deliberately lacks the privileges to alter schema — and from Layer 1 it
+/// lacks UPDATE and DELETE on the ledger tables entirely — so it could not apply a
 /// migration even if asked to. Keeping the two connection strings separate is what makes
 /// that revocation meaningful rather than decorative.
 /// <para>No tenant interceptor here: schema work is not tenant-scoped.</para>

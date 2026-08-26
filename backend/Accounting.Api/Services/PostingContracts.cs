@@ -10,7 +10,7 @@ public record PostJournalEntryRequest(
     Guid? SourceDocumentId = null);
 
 /// <summary>
-/// One line. <see cref="Amount"/> is always positive â€” the side is
+/// One line. <see cref="Amount"/> is always positive — the side is
 /// <see cref="Direction"/>, never the sign.
 /// </summary>
 public record PostingLineRequest(
@@ -36,7 +36,7 @@ public record PostingLineRequest(
     /// </summary>
     /// <remarks>
     /// Must be set here, at posting time. Postings are immutable, so there is no marking a
-    /// transaction as intercompany afterwards â€” and that is the right constraint: it is a
+    /// transaction as intercompany afterwards — and that is the right constraint: it is a
     /// deliberate statement about what happened, not something to be inferred later by
     /// matching amounts, which would eliminate genuine third-party trade.
     /// </remarks>

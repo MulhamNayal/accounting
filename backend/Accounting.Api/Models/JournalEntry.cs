@@ -1,7 +1,7 @@
 namespace Accounting.Api.Models;
 
 /// <summary>
-/// One balanced accounting event. Never updated and never deleted â€” the application role
+/// One balanced accounting event. Never updated and never deleted — the application role
 /// does not hold those privileges on this table.
 /// </summary>
 /// <remarks>
@@ -22,7 +22,7 @@ public class JournalEntry
     public required string EntryNo { get; set; }
 
     /// <summary>
-    /// The accounting date, which determines the period. Not the wall clock â€” back-dating
+    /// The accounting date, which determines the period. Not the wall clock — back-dating
     /// into an open period is ordinary and permitted.
     /// </summary>
     public DateOnly EntryDate { get; set; }
@@ -48,8 +48,8 @@ public class JournalEntry
     /// Set when this entry is the replacement for one that was reversed.
     /// </summary>
     /// <remarks>
-    /// Both links point from the new row to the old one. A forward pointer â€” say
-    /// <c>ReplacedByEntryId</c> on the original â€” would require updating the original, which
+    /// Both links point from the new row to the old one. A forward pointer — say
+    /// <c>ReplacedByEntryId</c> on the original — would require updating the original, which
     /// the revoked privileges forbid. Nothing about a posted entry ever changes, including
     /// its links.
     /// </remarks>

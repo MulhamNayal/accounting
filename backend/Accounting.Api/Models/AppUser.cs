@@ -1,7 +1,7 @@
 namespace Accounting.Api.Models;
 
 /// <summary>
-/// A person who can act in a tenant. Accounting deliberately does not own credentials â€”
+/// A person who can act in a tenant. Accounting deliberately does not own credentials —
 /// <see cref="ExternalAuthId"/> points at whichever identity provider is in use, so the
 /// choice can change without a data migration.
 /// </summary>
@@ -17,7 +17,7 @@ public class AppUser
 
     /// <summary>
     /// PBKDF2 hash for local sign-in. Null when the user authenticates through an external
-    /// provider, which is why this is nullable rather than required â€” the two are
+    /// provider, which is why this is nullable rather than required — the two are
     /// alternatives, and a user with neither simply cannot sign in.
     /// </summary>
     /// <remarks>
@@ -26,7 +26,7 @@ public class AppUser
     public string? PasswordHash { get; set; }
 
     /// <summary>
-    /// Bumped to invalidate every token already issued to this user â€” a password change, a
+    /// Bumped to invalidate every token already issued to this user — a password change, a
     /// suspected compromise, or an administrator revoking access.
     /// </summary>
     /// <remarks>

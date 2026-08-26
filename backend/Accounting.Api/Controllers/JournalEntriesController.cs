@@ -36,7 +36,7 @@ public class JournalEntriesController(IPostingService postings) : ControllerBase
     }
 
     // Named explicitly: ASP.NET Core strips the "Async" suffix from action names, so
-    // nameof(GetAsync) would not resolve â€” and CreatedAtAction throws after the entry has
+    // nameof(GetAsync) would not resolve — and CreatedAtAction throws after the entry has
     // already been committed, turning a success into a misleading error.
     [HttpGet("{id:guid}", Name = RouteNames.GetJournalEntry)]
     public async Task<ActionResult<JournalEntryDetail>> GetAsync(
@@ -52,7 +52,7 @@ public class JournalEntriesController(IPostingService postings) : ControllerBase
     }
 
     /// <summary>
-    /// Reverses an entry by posting its mirror image. The original is left untouched â€”
+    /// Reverses an entry by posting its mirror image. The original is left untouched —
     /// there is no mechanism here or anywhere else to alter it.
     /// </summary>
     [HttpPost("{id:guid}/reverse")]

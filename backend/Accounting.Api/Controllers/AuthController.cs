@@ -13,7 +13,7 @@ public class AuthController(IAuthService auth) : ControllerBase
     /// </summary>
     /// <remarks>
     /// The only anonymous endpoint in the application. The token carries the tenant as a
-    /// signed claim, which is what the client cannot forge â€” everything else reads the
+    /// signed claim, which is what the client cannot forge — everything else reads the
     /// tenant from there.
     /// </remarks>
     [AllowAnonymous]

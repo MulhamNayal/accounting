@@ -15,7 +15,7 @@ public sealed class CustomerService(AccountingDbContext db) : ICustomerService
     /// </summary>
     /// <remarks>
     /// Tenant-wide rather than per entity, so a group billing one client from two companies
-    /// keeps a single record for them. No balance is returned here â€” what a customer owes
+    /// keeps a single record for them. No balance is returned here — what a customer owes
     /// comes from the receivables postings carrying their id, via
     /// <see cref="IReceivablesService"/>.
     /// </remarks>

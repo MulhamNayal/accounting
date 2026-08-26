@@ -44,7 +44,7 @@ public class ConsolidationTests
     /// <remarks>
     /// The marking goes on at posting time because it has to: postings are immutable, so
     /// there is no marking a transaction as intercompany afterwards. That is the right
-    /// constraint â€” it is a statement about what happened, not something to infer later.
+    /// constraint — it is a statement about what happened, not something to infer later.
     /// </remarks>
     private static async Task PostAsync(
         Kit kit, LedgerWorld world, decimal amount, Guid? intercompanyWith = null)
@@ -225,7 +225,7 @@ public class ConsolidationTests
             () => kit.Consolidation.RunAsync(new RunConsolidationRequest(YearEnd, "SGD")));
 
         // Defaulting to 1 would report a foreign entity as though its currency were the
-        // group's â€” a wrong number that looks entirely plausible.
+        // group's — a wrong number that looks entirely plausible.
         Assert.Contains("No exchange rate", ex.Message);
     }
 
@@ -266,7 +266,7 @@ public class ConsolidationTests
         Assert.Equal(300m, cash.Consolidated);    // 1000 asset at the closing rate
         Assert.Equal(-280m, sales.Consolidated);  // 1000 income at the average rate
 
-        // 300 against 280 cannot balance, and that is not an error â€” IAS 21 takes the
+        // 300 against 280 cannot balance, and that is not an error — IAS 21 takes the
         // difference to a reserve in equity rather than to profit, because nobody realised
         // a gain; the rates simply moved.
         var reserve = result.Lines.Single(l => l.AccountCode == "3030");

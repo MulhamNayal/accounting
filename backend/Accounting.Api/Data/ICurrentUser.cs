@@ -8,7 +8,7 @@ namespace Accounting.Api.Data;
 /// Like <see cref="ITenantContext"/>, this is populated per request. Until authentication
 /// exists, Development fills it with the seeded demo user; the real implementation reads it
 /// from the authenticated principal. Outside Development it stays empty and posting fails,
-/// which is the correct direction â€” an unattributable entry is worse than no entry.
+/// which is the correct direction — an unattributable entry is worse than no entry.
 /// </remarks>
 public interface ICurrentUser
 {

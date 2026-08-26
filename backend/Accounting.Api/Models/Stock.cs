@@ -3,10 +3,10 @@ namespace Accounting.Api.Models;
 /// <summary>Which way stock moved.</summary>
 public enum StockDirection
 {
-    /// <summary>Into stock â€” a purchase, a return from a customer, a positive adjustment.</summary>
+    /// <summary>Into stock — a purchase, a return from a customer, a positive adjustment.</summary>
     In = 1,
 
-    /// <summary>Out of stock â€” a sale, a write-off, a negative adjustment.</summary>
+    /// <summary>Out of stock — a sale, a write-off, a negative adjustment.</summary>
     Out = 2,
 }
 
@@ -33,7 +33,7 @@ public class Item
     /// <summary>The unit quantities are expressed in. Multi-UOM conversion is not in scope.</summary>
     public required string BaseUom { get; set; }
 
-    /// <summary>Where the value of stock on hand sits â€” a stock control account.</summary>
+    /// <summary>Where the value of stock on hand sits — a stock control account.</summary>
     public Guid InventoryAccountId { get; set; }
     public Account? InventoryAccount { get; set; }
 
@@ -88,7 +88,7 @@ public class StockMove
 /// <remarks>
 /// <b>There is no <c>QuantityRemaining</c> column.</b> Remaining is
 /// <see cref="QuantityReceived"/> less the consumptions recorded against this layer, because
-/// a stored remainder is a mutable field on an append-only table â€” and a wrong one silently
+/// a stored remainder is a mutable field on an append-only table — and a wrong one silently
 /// corrupts the cost basis of everything issued afterwards.
 /// <para>
 /// FIFO order is <see cref="Sequence"/>, not <see cref="ReceivedOn"/>: two receipts on the
@@ -125,7 +125,7 @@ public class CostLayer
     /// Set when this layer revises another's cost rather than being a fresh receipt.
     /// </summary>
     /// <remarks>
-    /// A retroactive cost change never edits the original layer â€” its consumptions already
+    /// A retroactive cost change never edits the original layer — its consumptions already
     /// posted at the cost that was true when they happened. Instead a new layer records the
     /// revised basis for whatever is still on hand.
     /// </remarks>

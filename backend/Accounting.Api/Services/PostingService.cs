@@ -52,7 +52,7 @@ public sealed class PostingService(
         if (request.Lines is null || request.Lines.Count < 2)
         {
             throw new PostingValidationException(
-                "An entry needs at least two lines â€” one debit and one credit.");
+                "An entry needs at least two lines — one debit and one credit.");
         }
 
         var period = await ResolvePeriodAsync(entity.Id, request.EntryDate, ct);
@@ -71,7 +71,7 @@ public sealed class PostingService(
 
         // One transaction spans number allocation and the write. The counter row stays
         // locked until commit, so a rolled-back post returns its number rather than burning
-        // it â€” which is the whole point of a gapless series.
+        // it — which is the whole point of a gapless series.
         await using var scope = await BeginOrJoinAsync(ct);
 
         var entry = new JournalEntry
@@ -273,7 +273,7 @@ public sealed class PostingService(
     /// Balances per account, derived entirely from postings.
     /// </summary>
     /// <remarks>
-    /// There is no stored balance to go stale, and nothing to reconcile â€” this is the same
+    /// There is no stored balance to go stale, and nothing to reconcile — this is the same
     /// data the customer ledger and the control account are both computed from.
     /// </remarks>
     public async Task<TrialBalance> GetTrialBalanceAsync(
@@ -426,7 +426,7 @@ public sealed class PostingService(
     /// Joins the caller's transaction if there is one, otherwise starts and owns a new one.
     /// </summary>
     /// <remarks>
-    /// A document service needs the entry and its own "posted" flag written atomically â€”
+    /// A document service needs the entry and its own "posted" flag written atomically —
     /// a journal entry with no document pointing at it, or a document marked posted with no
     /// entry behind it, are both worse than a clean failure. So when a caller has already
     /// opened a transaction this joins it and leaves the commit to them.
@@ -459,7 +459,7 @@ public sealed class PostingService(
     /// failure this design cares about most escape as an unhandled 500.
     /// <para>
     /// Reaching here at all means the service's own checks missed a case the database
-    /// caught â€” a race, or a rule enforced in only one place. Worth surfacing distinctly.
+    /// caught — a race, or a rule enforced in only one place. Worth surfacing distinctly.
     /// </para>
     /// </remarks>
     private async Task SaveAndCommitAsync(LedgerTransactionScope scope, CancellationToken ct)

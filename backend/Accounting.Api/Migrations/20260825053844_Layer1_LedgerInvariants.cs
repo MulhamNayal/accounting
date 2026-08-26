@@ -9,7 +9,7 @@ namespace Accounting.Api.Migrations
     /// rather than by application discipline:
     /// <list type="number">
     ///   <item>every entry balances, checked at commit</item>
-    ///   <item>postings are append-only Ã¢â‚¬â€ UPDATE and DELETE are revoked</item>
+    ///   <item>postings are append-only — UPDATE and DELETE are revoked</item>
     ///   <item>a posting to a control account must carry its dimension</item>
     ///   <item>nothing posts into a closed period</item>
     ///   <item>tenant isolation, as everywhere else</item>

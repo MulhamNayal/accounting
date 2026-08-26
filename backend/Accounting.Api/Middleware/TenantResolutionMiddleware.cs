@@ -15,7 +15,7 @@ namespace Accounting.Api.Middleware;
 /// that tenant's books. A claim is signed, so the client cannot choose it.
 /// <para>
 /// An unauthenticated request leaves both empty. RLS then matches nothing and the request
-/// sees no data, which is the correct direction to fail â€” but authorization, not this
+/// sees no data, which is the correct direction to fail — but authorization, not this
 /// middleware, is what actually rejects it.
 /// </para>
 /// </remarks>

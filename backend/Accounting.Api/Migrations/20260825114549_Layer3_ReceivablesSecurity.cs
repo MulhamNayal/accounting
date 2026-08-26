@@ -31,7 +31,7 @@ namespace Accounting.Api.Migrations
             // record" is not an answer to it.
             migrationBuilder.Sql("REVOKE UPDATE, DELETE ON allocations FROM accounting_app;");
 
-            // A draft receipt is ordinary mutable data. A posted one is not Ã¢â‚¬â€ same one-way
+            // A draft receipt is ordinary mutable data. A posted one is not — same one-way
             // door as a sales invoice, and a state condition rather than a privilege, so it
             // needs a trigger rather than a REVOKE.
             migrationBuilder.Sql("""

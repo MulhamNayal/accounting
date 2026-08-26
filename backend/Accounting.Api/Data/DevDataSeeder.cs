@@ -53,7 +53,7 @@ public static class DevDataSeeder
     }
 
     /// <summary>
-    /// Two Malaysian regimes Ã¢â‚¬â€ the historical GST and the current SST Ã¢â‚¬â€ so the
+    /// Two Malaysian regimes — the historical GST and the current SST — so the
     /// effective-dating actually has something to distinguish.
     /// </summary>
     /// <remarks>
@@ -139,7 +139,7 @@ public static class DevDataSeeder
     /// </summary>
     /// <remarks>
     /// Development only, and matched by code, which is exactly what the role column exists
-    /// to avoid Ã¢â‚¬â€ but this is fixing up a demo chart the seeder created and whose codes it
+    /// to avoid — but this is fixing up a demo chart the seeder created and whose codes it
     /// therefore knows. Nothing in the application resolves an account by code.
     /// </remarks>
     private static async Task BackfillSystemRolesAsync(
@@ -285,7 +285,7 @@ public static class DevDataSeeder
     /// <summary>
     /// The user every posted entry is attributed to until authentication exists. Guarded
     /// separately from the tenant, because a database seeded before this existed still
-    /// needs it Ã¢â‚¬â€ every journal entry has a foreign key to it.
+    /// needs it — every journal entry has a foreign key to it.
     /// </summary>
     private static async Task SeedUserAsync(
         AccountingDbContext db, string demoPassword, CancellationToken cancellationToken)
@@ -296,7 +296,7 @@ public static class DevDataSeeder
         {
             // A database seeded before local sign-in existed has a user with no password,
             // which cannot authenticate. Guarding the whole method on the user's existence
-            // would leave it that way Ã¢â‚¬â€ the same mistake that left journal entries with no
+            // would leave it that way — the same mistake that left journal entries with no
             // user to attribute them to.
             if (existing.PasswordHash is null)
             {
@@ -439,7 +439,7 @@ public static class DevDataSeeder
 
     /// <summary>
     /// A deliberately small Malaysian SME chart. Control accounts are marked, because a
-    /// posting to one must carry its dimension Ã¢â‚¬â€ that constraint arrives in Layer 1.
+    /// posting to one must carry its dimension — that constraint arrives in Layer 1.
     /// </summary>
     private static List<Account> BuildStarterChart(Guid tenantId)
     {

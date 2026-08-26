@@ -1,7 +1,7 @@
 namespace Accounting.Api.Models;
 
 /// <summary>
-/// An append-only record of every period state transition â€” who closed or reopened a
+/// An append-only record of every period state transition — who closed or reopened a
 /// period, when, and why.
 /// </summary>
 /// <remarks>

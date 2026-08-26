@@ -1,14 +1,14 @@
-# CLAUDE.md â€” frontend
+# CLAUDE.md — frontend
 
 Read the root `CLAUDE.md` first. This covers the React/TypeScript side only.
 
 **Stack:** React + TypeScript on Vite, **Fluent UI React** (`@fluentui/react-components`),
 `react-router-dom`. Vite proxies `/api` to `http://localhost:5100`, so the app only ever
-uses relative URLs â€” as it will in production behind one origin.
+uses relative URLs — as it will in production behind one origin.
 
 ```bash
 npm run dev      # :5173
-npm run build    # tsc -b && vite build â€” run before calling any change done
+npm run build    # tsc -b && vite build — run before calling any change done
 ```
 
 ---
@@ -21,7 +21,7 @@ just its components. Getting this wrong once already cost a rewrite.
 
 | Need | Use | Not |
 |---|---|---|
-| App navigation | `NavDrawer`, `NavDrawerBody`, `AppItem`, `NavSectionHeader`, `NavItem`, `Hamburger` | `TabList` â€” tabs switch views *within* a page |
+| App navigation | `NavDrawer`, `NavDrawerBody`, `AppItem`, `NavSectionHeader`, `NavItem`, `Hamburger` | `TabList` — tabs switch views *within* a page |
 | Search | `SearchBox` | `Input` with a magnifying-glass icon |
 | Content container | `Card` | a hand-rolled bordered `div` |
 | Errors, warnings, notices | `MessageBar` + `MessageBarBody` | coloured `Body1` |
@@ -32,7 +32,7 @@ just its components. Getting this wrong once already cost a rewrite.
 Wrap icons in **`bundleIcon(Filled, Regular)`** so they fill when selected. That is the
 Fluent convention and its absence is immediately visible.
 
-Colour, spacing, radius and type come from **Fluent tokens** â€” never hard-coded hex or px.
+Colour, spacing, radius and type come from **Fluent tokens** — never hard-coded hex or px.
 Both `webLightTheme` and `webDarkTheme` must look right; a hard-coded colour breaks one of
 them.
 
@@ -40,16 +40,16 @@ them.
 
 ## Conventions
 
-- **`verbatimModuleSyntax` is on** â€” always `import type { X }` for type-only imports.
+- **`verbatimModuleSyntax` is on** — always `import type { X }` for type-only imports.
   `tsc -b` fails otherwise.
 - **`api/{resource}.ts`**, one file per backend resource, with interfaces mirroring the DTO
   field-for-field (camelCase, matching `System.Text.Json`'s default). When a backend record
   changes, update the matching interface in the same commit.
-- **Shared HTTP lives in `api/client.ts`** â€” `getJson`, `postJson`, and the error
+- **Shared HTTP lives in `api/client.ts`** — `getJson`, `postJson`, and the error
   unwrapping. Don't duplicate any of it into a resource module.
 - **`theme.ts` is the single source for cross-cutting visual conventions.** Don't re-solve a
   global look with page-local `sx`/`makeStyles` overrides.
-- **`components/` must stay reusable** â€” no knowledge of *what* it is displaying.
+- **`components/` must stay reusable** — no knowledge of *what* it is displaying.
   Page-specific composition belongs in `pages/`.
 - Keep the key on the **fragment** when a `.map()` renders more than one row per item.
   Keying an inner row breaks reconciliation, and TypeScript will not catch it.
@@ -61,12 +61,12 @@ them.
 The API returns a raw JSON string for 400/404/409 and `ProblemDetails` for 502; both are
 unwrapped in `api/client.ts`. **Surface that message verbatim.**
 
-It names the rule that was broken and usually why it exists â€” *"Account 1210 is a control
+It names the rule that was broken and usually why it exists — *"Account 1210 is a control
 account, so the line must name a customer. Without it the balance is invisible to the
 subledger while still counting toward the control account."* No client-side string is going
 to improve on that.
 
-Validate in the client only for **fast feedback** â€” a live debit/credit total, a disabled
+Validate in the client only for **fast feedback** — a live debit/credit total, a disabled
 submit button. The server still decides.
 
 ---
@@ -76,7 +76,7 @@ submit button. The server still decides.
 - **Never offer an Edit or Delete action on a posted document.** There is no endpoint for
   either, and a disabled button implies the operation exists somewhere.
 - Say plainly what a draft is: not in the books, no number taken, nothing posted.
-- Show corrections as what they are â€” a reversal pair, both visible.
+- Show corrections as what they are — a reversal pair, both visible.
 - Label what isn't built yet with a `MessageBar` rather than hiding the page. The shape of
   the product should be visible; what doesn't work should say so.
 

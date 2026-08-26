@@ -26,7 +26,7 @@ namespace Accounting.Api.Migrations
 
             // A code's rate must never change once anything has been posted under it.
             // Postings store the code, not the rate, so editing a rate would silently
-            // restate the tax on every historical document that used it Ã¢â‚¬â€ including returns
+            // restate the tax on every historical document that used it — including returns
             // already filed. Retiring a code and adding a replacement is the only correct
             // way to change a rate.
             migrationBuilder.Sql("""

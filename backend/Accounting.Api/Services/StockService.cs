@@ -323,7 +323,7 @@ public sealed class StockService(
     /// <remarks>
     /// The difference splits by where the stock now is. Whatever is still on hand is worth
     /// more or less than recorded, so that share adjusts inventory. Whatever has already
-    /// been sold was costed wrong, so that share adjusts cost of sales â€” posted into the
+    /// been sold was costed wrong, so that share adjusts cost of sales — posted into the
     /// current period, never by restating the original entry. Prior figures stand as
     /// reported and the correction is visible as a correction, which is what an auditor
     /// needs and what an in-place recompute cannot provide.

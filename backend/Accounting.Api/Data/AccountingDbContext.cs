@@ -513,7 +513,7 @@ public class AccountingDbContext(DbContextOptions<AccountingDbContext> options) 
     }
 
     /// <summary>
-    /// The posting core. Nothing here is ever updated or deleted â€” the application role's
+    /// The posting core. Nothing here is ever updated or deleted — the application role's
     /// privileges are revoked in the migration, so immutability is enforced below the
     /// application rather than trusted to it.
     /// </summary>

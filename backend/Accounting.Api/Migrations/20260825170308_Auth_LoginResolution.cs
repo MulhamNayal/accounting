@@ -8,7 +8,7 @@ namespace Accounting.Api.Migrations
     /// The one deliberate, narrow bypass of row level security.
     /// </summary>
     /// <remarks>
-    /// Sign-in is the only operation that cannot already know its tenant Ã¢â‚¬â€ establishing it is
+    /// Sign-in is the only operation that cannot already know its tenant — establishing it is
     /// the point. RLS would therefore hide every user row and nobody could ever authenticate.
     /// <para>
     /// Rather than grant the application any broader reach, this function runs as its owner

@@ -101,7 +101,7 @@ public sealed class SalesInvoiceService(
             {
                 throw new PostingValidationException(
                     $"Line {lineNo} ({line.Description}) has quantity {line.Quantity} at "
-                    + $"{line.UnitPrice}. Both must be positive â€” a negative line is a credit note.");
+                    + $"{line.UnitPrice}. Both must be positive — a negative line is a credit note.");
             }
 
             invoice.Lines.Add(new SalesInvoiceLine
@@ -130,12 +130,12 @@ public sealed class SalesInvoiceService(
     }
 
     /// <summary>
-    /// Allocates the document number, runs the posting rule, and writes the entry â€” all in
+    /// Allocates the document number, runs the posting rule, and writes the entry — all in
     /// one transaction.
     /// </summary>
     /// <remarks>
     /// The number is gapless, so it must be taken inside the transaction that commits the
-    /// invoice. If anything downstream fails â€” an unbalanced rule output, a closed period â€”
+    /// invoice. If anything downstream fails — an unbalanced rule output, a closed period —
     /// the number goes back and the next invoice takes it, leaving no hole for an auditor
     /// to ask about.
     /// </remarks>
@@ -152,7 +152,7 @@ public sealed class SalesInvoiceService(
         if (invoice.State == DocumentState.Posted)
         {
             throw new PostingValidationException(
-                $"Invoice {invoice.DocNo} is already posted. Posting is a one-way door â€” "
+                $"Invoice {invoice.DocNo} is already posted. Posting is a one-way door — "
                 + "issue a credit note to undo it.");
         }
 
@@ -173,7 +173,7 @@ public sealed class SalesInvoiceService(
             invoice, new PostingRuleContext(receivables.Id, outputTaxAccounts));
 
         // Held in a local rather than assigned straight to the entity. PostAsync saves
-        // changes of its own, which would flush this invoice mid-flight â€” a Draft row
+        // changes of its own, which would flush this invoice mid-flight — a Draft row
         // carrying a document number but no entry, which ck_sales_invoice_posted_is_complete
         // rightly refuses. The three fields that define "posted" are set together, below.
         var docNo = await numbers.AllocateAsync(
@@ -241,7 +241,7 @@ public sealed class SalesInvoiceService(
                 l.RevenueAccount!.Code,
                 l.RevenueAccount.Name,
                 l.TaxCodeId,
-                l.TaxCode is null ? null : $"{l.TaxCode.Code} â€” {l.TaxCode.Name}",
+                l.TaxCode is null ? null : $"{l.TaxCode.Code} — {l.TaxCode.Name}",
                 l.TaxRate,
                 l.TaxAmount)).ToList());
     }
@@ -250,7 +250,7 @@ public sealed class SalesInvoiceService(
         Guid legalEntityId, CancellationToken ct = default)
     {
         // Tax is rounded per line, so the totals are summed from the lines rather than
-        // recomputed from the net â€” projecting the raw columns and finishing in memory keeps
+        // recomputed from the net — projecting the raw columns and finishing in memory keeps
         // that arithmetic in one place (the model) instead of duplicating it in SQL.
         var invoices = await db.SalesInvoices
             .AsNoTracking()

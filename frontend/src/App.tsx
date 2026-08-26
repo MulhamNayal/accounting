@@ -111,7 +111,7 @@ function App() {
     return (
       <FluentProvider theme={theme}>
         <div className={styles.centre}>
-          <Spinner label="Loading your booksâ€¦" />
+          <Spinner label="Loading your books…" />
         </div>
       </FluentProvider>
     )

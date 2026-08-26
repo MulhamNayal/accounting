@@ -10,7 +10,7 @@ namespace Accounting.Api.Models;
 /// period end.
 /// <para>
 /// <see cref="AverageRate"/> is held alongside the closing rate because translation needs
-/// both â€” the balance sheet at the rate on the day, the income statement at the average over
+/// both — the balance sheet at the rate on the day, the income statement at the average over
 /// the period, since income arose throughout it rather than at the end.
 /// </para>
 /// </remarks>

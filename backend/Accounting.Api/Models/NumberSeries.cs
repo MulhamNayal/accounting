@@ -6,7 +6,7 @@ public enum NumberResetPolicy
     /// <summary>One continuous run for the life of the entity.</summary>
     Never = 1,
 
-    /// <summary>Restarts each financial year â€” the usual expectation for tax documents.</summary>
+    /// <summary>Restarts each financial year — the usual expectation for tax documents.</summary>
     Yearly = 2,
 }
 
@@ -14,7 +14,7 @@ public enum NumberResetPolicy
 /// A numbering scheme for one document type in one entity.
 /// </summary>
 /// <remarks>
-/// Several series may be active for the same document type â€” a business commonly runs a
+/// Several series may be active for the same document type — a business commonly runs a
 /// main invoice series alongside one for a branch or a project. The incumbent system's
 /// production data carried two concurrent invoice series with entirely different formats,
 /// so this is a requirement rather than flexibility for its own sake.
@@ -37,14 +37,14 @@ public class NumberSeries
 
     /// <summary>
     /// A .NET composite format string. <c>{0}</c> is the number, <c>{1}</c> the document
-    /// date â€” so "IV-{0:D5}" gives IV-00001 and "IV/{1:yyyy}/{0:D4}" gives IV/2026/0001.
+    /// date — so "IV-{0:D5}" gives IV-00001 and "IV/{1:yyyy}/{0:D4}" gives IV/2026/0001.
     /// </summary>
     public required string Format { get; set; }
 
     public NumberResetPolicy ResetPolicy { get; set; } = NumberResetPolicy.Yearly;
 
     /// <summary>
-    /// Whether the sequence must be dense â€” no missing numbers, ever.
+    /// Whether the sequence must be dense — no missing numbers, ever.
     /// </summary>
     /// <remarks>
     /// True for documents a tax authority examines: sales invoices, credit notes, debit
@@ -72,7 +72,7 @@ public class NumberSeries
 /// </summary>
 /// <remarks>
 /// Separate from <see cref="NumberSeries"/> because a yearly series needs one count per
-/// year, and because this row is locked on every allocation â€” keeping it narrow keeps the
+/// year, and because this row is locked on every allocation — keeping it narrow keeps the
 /// lock cheap and avoids blocking readers of the series definition.
 /// </remarks>
 public class NumberCounter

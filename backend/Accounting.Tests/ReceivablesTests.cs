@@ -259,7 +259,7 @@ public class ReceivablesTests
         Assert.Equal(allocated[0].Id, reversal.ReversesAllocationId);
         Assert.Equal(-800m, reversal.Amount);
 
-        // Nothing was deleted â€” both rows stand, and they net to nothing.
+        // Nothing was deleted — both rows stand, and they net to nothing.
         await using var reader = world.NewAppContext();
         Assert.Equal(2, await reader.Allocations.CountAsync());
         Assert.Equal(0m, await reader.Allocations.SumAsync(a => a.Amount));
@@ -314,7 +314,7 @@ public class ReceivablesTests
         await using var kit = KitFor(world);
 
         // Invoiced 100 USD when a dollar was worth 4.70; paid when it was worth 4.50.
-        // The receivable was carried at 470 and only 450 was realised â€” a 20 loss.
+        // The receivable was carried at 470 and only 450 was realised — a 20 loss.
         var invoice = await PostedInvoiceAsync(kit, world, 100m, "USD", 4.7m);
         var receipt = await PostedReceiptAsync(kit, world, 100m, "USD", 4.5m);
 
@@ -346,7 +346,7 @@ public class ReceivablesTests
         var world = await LedgerFixture.CreateAsync();
         await using var kit = KitFor(world);
 
-        // Invoiced at 4.50, paid when the dollar was worth 4.70 â€” 20 more than carried.
+        // Invoiced at 4.50, paid when the dollar was worth 4.70 — 20 more than carried.
         var invoice = await PostedInvoiceAsync(kit, world, 100m, "USD", 4.5m);
         var receipt = await PostedReceiptAsync(kit, world, 100m, "USD", 4.7m);
 
