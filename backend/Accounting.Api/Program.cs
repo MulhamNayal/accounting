@@ -109,7 +109,10 @@ app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    // AllowAnonymous because the fallback policy below requires an authenticated user for
+    // every endpoint, and an API description you need a token to read is no use for
+    // exploring the API.
+    app.MapOpenApi().AllowAnonymous();
     app.UseCors(DevCorsPolicy);
 }
 
@@ -134,6 +137,13 @@ app.UseHttpsRedirection();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+// Explicit, and deliberately AFTER the static file middleware. WebApplication otherwise
+// auto-inserts UseRouting at the very top of the pipeline, which selects the fallback
+// endpoint before the static files ever run - and both UseDefaultFiles and UseStaticFiles
+// stand down once an endpoint has been selected. The result is that "/" bypasses index.html
+// entirely and lands on the authenticated fallback endpoint as a 401.
+app.UseRouting();
+
 app.UseAuthentication();
 // Order matters: the tenant is read from the authenticated principal's claims, so this must
 // run after authentication has populated it and before anything opens a connection.
@@ -148,8 +158,11 @@ app.MapControllers();
 // every real controller action still wins.
 app.Map("/api/{**rest}", () => Results.NotFound());
 
-// Everything else that isn't a real file is a client-side route.
-app.MapFallbackToFile("index.html");
+// Everything else that isn't a real file is a client-side route. AllowAnonymous because this
+// serves the application shell, not data: a deep link like /invoices has to return the page
+// so the SPA can render its sign-in screen. Every API call the page then makes is still
+// subject to the fallback policy.
+app.MapFallbackToFile("index.html").AllowAnonymous();
 
 app.Run();
 

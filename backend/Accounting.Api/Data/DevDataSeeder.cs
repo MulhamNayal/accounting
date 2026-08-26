@@ -294,16 +294,14 @@ public static class DevDataSeeder
 
         if (existing is not null)
         {
-            // A database seeded before local sign-in existed has a user with no password,
-            // which cannot authenticate. Guarding the whole method on the user's existence
-            // would leave it that way — the same mistake that left journal entries with no
-            // user to attribute them to.
-            if (existing.PasswordHash is null)
-            {
-                existing.PasswordHash = AuthService.HashPassword(existing, demoPassword);
-                await db.SaveChangesAsync(cancellationToken);
-            }
-
+            // The demo account's password is whatever is currently configured, reasserted on
+            // every start rather than set once. Setting it only when absent meant that
+            // correcting a wrong Seed:DemoPassword had no effect on an existing database, so
+            // the credential in configuration and the one that actually worked drifted apart
+            // with nothing to indicate it. This is safe precisely because it is a demo
+            // account; no real user's password is managed here.
+            existing.PasswordHash = AuthService.HashPassword(existing, demoPassword);
+            await db.SaveChangesAsync(cancellationToken);
             return;
         }
 
