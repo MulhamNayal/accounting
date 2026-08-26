@@ -2,7 +2,7 @@
 
 Guidance for Claude Code in this repository. Read it fully before making changes.
 
-These are project rules, not suggestions — follow them even where they differ from generic
+These are project rules, not suggestions â€” follow them even where they differ from generic
 defaults, because they usually encode a real constraint. If a rule appears to cause a
 concrete bug or contradicts the code, stop and flag it rather than working around it.
 
@@ -16,7 +16,7 @@ concrete bug or contradicts the code, stop and flag it rather than working aroun
 - **Purpose:** open-source double-entry accounting, inventory and compliance platform for
   SMEs, positioned against desktop incumbents.
 - **Stack:** ASP.NET Core / C# on .NET 10, React + TypeScript + Fluent UI React, PostgreSQL.
-- **Layout:** `backend/ClearWise.Api`, `backend/ClearWise.Tests`, `frontend/`, `docs/`.
+- **Layout:** `backend/Accounting.Api`, `backend/Accounting.Tests`, `frontend/`, `docs/`.
 - **Design spec:** `docs/superpowers/specs/2026-08-25-ledger-model-design.md`. Read it
   before touching the ledger. The build order is layered, 0 through 7.
 
@@ -24,7 +24,7 @@ concrete bug or contradicts the code, stop and flag it rather than working aroun
 
 **The books cannot be altered without evidence, and that is enforced below the
 application.** Corrections are new entries; nothing is ever edited or deleted. The
-differentiator is not features — the incumbent has more — it is that its audit trail exists
+differentiator is not features â€” the incumbent has more â€” it is that its audit trail exists
 only because its application chooses to write one, and this one does not depend on that.
 
 Anything that would let a posted figure change quietly is wrong, however convenient.
@@ -34,11 +34,11 @@ Anything that would let a posted figure change quietly is wrong, however conveni
 ## Build & Test
 
 ```bash
-dotnet build ClearWise.slnx -v minimal
-dotnet test ClearWise.slnx                    # needs local Postgres running
+dotnet build Accounting.slnx -v minimal
+dotnet test Accounting.slnx                    # needs local Postgres running
 cd frontend && npm run build                  # tsc -b && vite build
 cd frontend && npm run dev                    # :5173, proxies /api to :5100
-cd backend/ClearWise.Api && dotnet run --urls http://localhost:5100
+cd backend/Accounting.Api && dotnet run --urls http://localhost:5100
 ```
 
 **Always build and run the tests after changes. Never leave either broken.**
@@ -47,8 +47,8 @@ cd backend/ClearWise.Api && dotnet run --urls http://localhost:5100
 
 ## This machine
 
-- **Stop the running API before building** — it locks its own exe and the build fails with
-  MSB3027: `Get-Process ClearWise.Api | Stop-Process -Force`
+- **Stop the running API before building** â€” it locks its own exe and the build fails with
+  MSB3027: `Get-Process Accounting.Api | Stop-Process -Force`
 - **Postgres is not a Windows service** and does not survive a reboot:
   `& "C:\Program Files\PostgreSQL\17\bin\pg_ctl.exe" -D "C:\Program Files\PostgreSQL\17\data" -l "$env:TEMP\pg.log" start`
 - **`git` is not on PATH.** Use
@@ -62,7 +62,7 @@ cd backend/ClearWise.Api && dotnet run --urls http://localhost:5100
 Lowercase, imperative, prefixed by area: `backend: ...`, `frontend: ...`, `fix: ...`,
 `docs: ...`. Explain *why* in the body when it is not obvious.
 
-**Use `git commit -F <file>`, never `-m`,** for anything multi-line or containing quotes —
+**Use `git commit -F <file>`, never `-m`,** for anything multi-line or containing quotes â€”
 PowerShell mangles the argument and git treats the fragments as pathspecs.
 
 **No AI attribution, no `Co-Authored-By`.** Commits should read like Mulham wrote them.
@@ -83,7 +83,7 @@ PowerShell mangles the argument and git treats the fragments as pathspecs.
 - Weaken any guarantee that makes a posted figure immutable
 - Store a balance, total or outstanding amount that postings can derive
 - Hand-edit the database schema outside a migration
-- Use `double` for money — `decimal` with explicit precision, always
+- Use `double` for money â€” `decimal` with explicit precision, always
 - Commit secrets, connection strings or API keys
-- Commit source-system data files (`.fdb`, `.fbk`, exports) — **this repo is public**
+- Commit source-system data files (`.fdb`, `.fbk`, exports) â€” **this repo is public**
 - Commit with AI attribution

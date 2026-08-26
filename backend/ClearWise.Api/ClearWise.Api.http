@@ -1,6 +1,0 @@
-@ClearWise.Api_HostAddress = http://localhost:5071
-
-GET {{ClearWise.Api_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

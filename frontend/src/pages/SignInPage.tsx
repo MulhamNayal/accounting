@@ -56,7 +56,7 @@ export function SignInPage({ onSignedIn }: { onSignedIn: (session: Session) => v
     <div className={styles.screen}>
       <Card className={styles.card}>
         <div className={styles.header}>
-          <Title2>ClearWise</Title2>
+          <Title2>Accounting</Title2>
           <Caption1 className={styles.subtle}>Sign in to continue</Caption1>
         </div>
 
@@ -91,7 +91,7 @@ export function SignInPage({ onSignedIn }: { onSignedIn: (session: Session) => v
           disabled={!email || !password || busy}
           onClick={() => void submit()}
         >
-          {busy ? 'Signing in…' : 'Sign in'}
+          {busy ? 'Signing inâ€¦' : 'Sign in'}
         </Button>
 
         <Caption1 className={styles.subtle}>

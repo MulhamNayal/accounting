@@ -1,12 +1,12 @@
-# How the incumbent desktop system handles corrections — findings
+# How the incumbent desktop system handles corrections â€” findings
 
 Date: 2026-08-24
 
 ## Purpose and provenance
 
-ClearWise needs to decide how a posted transaction is corrected. Rather than assume, this
+Accounting needs to decide how a posted transaction is corrected. Rather than assume, this
 was measured against a real production company file from the incumbent desktop accounting
-system, examined read-only for **interoperability purposes** — understanding what a
+system, examined read-only for **interoperability purposes** â€” understanding what a
 migration importer must accept, and what behaviour customers will arrive expecting.
 
 Method notes:
@@ -19,9 +19,9 @@ Method notes:
 - **Absolute volumetrics are deliberately omitted from this document.** Invoice and
   transaction counts describe a real business's trading volume, and this repository is
   public. Rates and ratios are recorded; magnitudes are not.
-- Nothing here is copied into ClearWise's own ledger design. This file documents the
+- Nothing here is copied into Accounting's own ledger design. This file documents the
   *source system's behaviour*, which is an input to the importer and to product
-  expectations — not a template for our schema.
+  expectations â€” not a template for our schema.
 
 ## Platform
 
@@ -40,7 +40,7 @@ Two things matter here.
 
 **`charset NONE`.** The database declares no character set, so byte sequences are stored
 without declared encoding. The importer cannot assume UTF-8 and must treat text decoding
-as an explicit, configurable step — with a fallback for mis-encoded legacy rows. This is a
+as an explicit, configurable step â€” with a fallback for mis-encoded legacy rows. This is a
 known source of silent corruption in migrations and needs handling by design, not by luck.
 
 **Zero triggers, zero procedures, zero views.** All business logic lives in the
@@ -49,34 +49,34 @@ for the audit trail is decisive and is covered below.
 
 ## Schema shape
 
-Roughly 210 business tables under clear module prefixes — `GL` (general ledger), `AR`,
+Roughly 210 business tables under clear module prefixes â€” `GL` (general ledger), `AR`,
 `AP`, `SL` (sales), `PH` (purchase), `ST` (stock, 39 tables), `SY` (system), `FA` (fixed
 assets), `GST` (13 tables) and `SST` (5), plus `MYINVOIS_TRANS` for e-Invoice.
 
 The remaining **520 of 730 tables are transient**, named `T_01_` followed by a random
-token — per-session working tables that are created and never reclaimed. They are 71% of
+token â€” per-session working tables that are created and never reclaimed. They are 71% of
 the schema and contribute meaningfully to file size.
 
-Implication for ClearWise: transient query workspaces must be namespaced and reclaimed on
+Implication for Accounting: transient query workspaces must be namespaced and reclaimed on
 a schedule, or the same accretion happens. It also means the importer should ignore
 anything matching the transient pattern rather than trying to interpret 520 unknown
 tables.
 
 The presence of both `GST_*` and `SST_*` tables reflects Malaysia's 2018 GST-to-SST
 transition. A migration importer must handle historical documents carrying a tax regime
-that no longer exists — history cannot be re-stated under current rules.
+that no longer exists â€” history cannot be re-stated under current rules.
 
 ## The answer: corrections are in-place edits, audited by the application
 
 Two tables implement the audit trail:
 
-**`AUDIT`** — one row per audited operation: `DOCKEY`, `USERNAME`, `UPDATEKIND`,
+**`AUDIT`** â€” one row per audited operation: `DOCKEY`, `USERNAME`, `UPDATEKIND`,
 `MODULE`, `DOCDATETIME`, `REF`, `REFERENCE`, `DELETED`.
 
-**`AUDITDTL`** — one row per changed field: `TABLENAME`, `FIELDNAME`, **`OLD`**,
+**`AUDITDTL`** â€” one row per changed field: `TABLENAME`, `FIELDNAME`, **`OLD`**,
 **`NEW`**, `UPDATEKIND`.
 
-`UPDATEKIND` uses three values, `I`, `E` and `D` — insert, edit, delete. All three occur
+`UPDATEKIND` uses three values, `I`, `E` and `D` â€” insert, edit, delete. All three occur
 in the production data. Deletes are rare but **non-zero**: posted documents are not merely
 cancellable, they are removable.
 
@@ -86,11 +86,11 @@ Document tables (`AR_IV`, `AR_CN`, `GL_JE`, `AP_PI`) each carry `UPDATECOUNT`,
 The evidence, in order of how conclusive it is:
 
 1. **An `OLD`/`NEW` field-level diff log only makes sense if rows are `UPDATE`d in
-   place.** A reversal-based system has no old value to record — it has two documents.
+   place.** A reversal-based system has no old value to record â€” it has two documents.
 2. **`UPDATECOUNT` is a mutation counter on the document itself.** It is null until the
    first edit, then increments. Roughly **3% of sales invoices in this file had been
    edited after posting**, a small number of them repeatedly. So in-place editing of
-   posted documents is not theoretical — it is ordinary practice.
+   posted documents is not theoretical â€” it is ordinary practice.
 3. **`CANCELLED` is a boolean flag on the document, not a reversing entry.** Cancelling
    sets a flag; it does not generate a compensating posting.
 4. **`UPDATEKIND = 'D'` exists in the data.** Documents get deleted outright.
@@ -102,15 +102,15 @@ field-level change log as the evidence.**
 
 Because there are **zero database triggers**, the audit trail is written entirely by the
 application. Nothing in the database compels it. Any process that writes to the file
-directly — a script, a report tool, a support engineer with the `SYSDBA` password, which
-is the Firebird factory default — mutates the books and leaves no trace.
+directly â€” a script, a report tool, a support engineer with the `SYSDBA` password, which
+is the Firebird factory default â€” mutates the books and leaves no trace.
 
 An audit trail that the storage layer does not enforce is not tamper-evident. It records
 what a cooperating application chose to record. That is the substantive difference between
 this design and a ledger where correction is structurally impossible to hide.
 
 A caveat on volume, for honesty: `AUDITDTL` is very large, but most of its rows come from
-`UPDATEKIND = 'I'` — the log captures every field on insert as well as on edit. The
+`UPDATEKIND = 'I'` â€” the log captures every field on insert as well as on edit. The
 row count is therefore **not** evidence of heavy editing. The evidence for editing is
 `UPDATECOUNT` and the `E` operation count, both cited above.
 
@@ -130,12 +130,12 @@ That is a divergence risk by construction: an invoice can be edited after the
 corresponding e-invoice has been validated by the tax authority, and only convention keeps
 the two consistent.
 
-## What this means for ClearWise's decision
+## What this means for Accounting's decision
 
 This is input to the open decision, not the decision itself.
 
 **Arguing for matching the incumbent (mutable + audit log):** it is what the entire
-addressable market already does daily. Roughly 3% of invoices get edited after posting —
+addressable market already does daily. Roughly 3% of invoices get edited after posting â€”
 low enough that reversal friction would be occasional, high enough that it would be felt.
 Users who cannot fix a typo the way they always have will say the system is worse.
 
@@ -145,12 +145,12 @@ Users who cannot fix a typo the way they always have will say the system is wors
    append-only ledger makes correction visible structurally rather than by convention.
 2. *e-Invoice removes the choice for sales invoices anyway.* Under the MyInvois regime,
    once an invoice is validated it cannot be edited, and after the cancellation window it
-   cannot be cancelled either — corrections must be credit/debit/refund notes referencing
+   cannot be cancelled either â€” corrections must be credit/debit/refund notes referencing
    the original. **This should be re-verified against current LHDN guidance before it is
    relied on**; it is not evidenced by this file, which has no e-invoice activity.
 
 If the second point holds, then a mutable model produces two different correction
-behaviours in one product — editable for most documents, reversal-only for e-invoiced
+behaviours in one product â€” editable for most documents, reversal-only for e-invoiced
 sales invoices. The `MYINVOIS_TRANS` design above is what that compromise looks like when
 it is bolted on rather than designed in.
 
@@ -163,6 +163,6 @@ the application choosing to tell the truth.
 - Verify the current MyInvois cancellation window and correction rules against LHDN's
   latest published guidance.
 - Determine what the incumbent writes to `AUDIT`/`AUDITDTL` when a document is *deleted*
-  rather than edited — whether the deleted content is recoverable from `OLD` values.
+  rather than edited â€” whether the deleted content is recoverable from `OLD` values.
 - Confirm the encoding actually used for text under `charset NONE` before designing the
   importer's decode step.

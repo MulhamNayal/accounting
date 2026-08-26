@@ -157,11 +157,11 @@ export function AppShell({
 
         <NavDrawerBody>
           <AppItem
-            icon={<Body1Strong>CW</Body1Strong>}
+            icon={<Body1Strong>Ac</Body1Strong>}
             as="button"
             onClick={() => navigate('/entities')}
           >
-            ClearWise
+            Accounting
           </AppItem>
 
           <NavSectionHeader>Sales</NavSectionHeader>
@@ -210,13 +210,13 @@ export function AppShell({
               className={styles.entityPicker}
               aria-label="Active entity"
               placeholder="Select an entity"
-              value={selected ? `${selected.code} — ${selected.name}` : ''}
+              value={selected ? `${selected.code} â€” ${selected.name}` : ''}
               selectedOptions={selected ? [selected.id] : []}
               onOptionSelect={(_, data) => data.optionValue && onSelectEntity(data.optionValue)}
             >
               {entities.map((entity) => (
-                <Option key={entity.id} value={entity.id} text={`${entity.code} — ${entity.name}`}>
-                  {entity.code} — {entity.name}
+                <Option key={entity.id} value={entity.id} text={`${entity.code} â€” ${entity.name}`}>
+                  {entity.code} â€” {entity.name}
                 </Option>
               ))}
             </Dropdown>
