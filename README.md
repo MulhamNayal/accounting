@@ -59,16 +59,26 @@ owner's credentials can still act. That is true of every system; it means the gu
 | 6 | Consolidation, eliminations, currency translation | ✅ |
 | 7 | Migration importer | ⬜ |
 
-Plus authentication, and a React front end covering invoices, receipts, ageing, stock,
-journals, the trial balance and the chart of accounts.
+Plus authentication, the profit and loss account and balance sheet, and a React front end
+covering invoices, receipts, ageing, stock, journals, the three statements and the chart of
+accounts.
 
-**Not built:** the migration importer, purchases and payables, period close and year-end,
-e-Invoice submission, and a UI for consolidation. `docs/superpowers/specs/` has the design;
+**Not built, and the list is longer than the one above:** purchases and payables — the entire
+buying side — credit and debit notes, the sales and purchase document chain (quotation, order,
+delivery note, goods received), bank reconciliation, stock takes, transfers and multiple
+locations, period close and year-end, tax returns, user and permission management, printable
+document layouts, e-Invoice submission, the migration importer, and a UI for consolidation.
+
+What exists is a correct, tamper-evident ledger core with receivables, stock and group
+reporting on top. That is the hard part and the part incumbents get wrong; it is not yet a
+product anyone should run a business on. `docs/superpowers/specs/` has the design;
 `docs/research/` has what the incumbent-system examination found.
 
 ## Scope
 
-- **General ledger** — chart of accounts, journals, immutable postings, dimensions
+- **General ledger** — chart of accounts, journals, immutable postings, dimensions, and the
+  trial balance, profit and loss account and balance sheet, each computed from postings on
+  every request so that no stored figure can drift from the ledger it describes
 - **Receivables** — customers, invoices, receipts, allocation, ageing, statements
 - **Inventory** — FIFO cost layers, issues costed from the layers actually consumed, and
   retroactive cost corrections that adjust inventory and cost of sales without rewriting

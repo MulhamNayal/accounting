@@ -37,6 +37,10 @@ import {
   DocumentTableRegular,
   BoxFilled,
   BoxRegular,
+  DataTrendingFilled,
+  DataTrendingRegular,
+  LibraryFilled,
+  LibraryRegular,
   MoneyFilled,
   MoneyRegular,
   PersonRegular,
@@ -62,6 +66,8 @@ const InvoicesIcon = bundleIcon(DocumentBulletListFilled, DocumentBulletListRegu
 const ReceiptsIcon = bundleIcon(MoneyFilled, MoneyRegular)
 const AgeingIcon = bundleIcon(ClockFilled, ClockRegular)
 const StockIcon = bundleIcon(BoxFilled, BoxRegular)
+const ProfitIcon = bundleIcon(DataTrendingFilled, DataTrendingRegular)
+const BalanceSheetIcon = bundleIcon(LibraryFilled, LibraryRegular)
 const SettingsIcon = bundleIcon(SettingsFilled, SettingsRegular)
 
 const useStyles = makeStyles({
@@ -104,7 +110,14 @@ const STOCK_ITEMS = [
 
 const LEDGER_ITEMS = [
   { path: '/journals', label: 'Journals', icon: <JournalsIcon /> },
+]
+
+// Separated from the ledger: these are read-only views of the same postings, and grouping
+// them together is how an accountant expects to find them.
+const REPORT_ITEMS = [
   { path: '/trial-balance', label: 'Trial balance', icon: <ScalesIcon /> },
+  { path: '/profit-and-loss', label: 'Profit and loss', icon: <ProfitIcon /> },
+  { path: '/balance-sheet', label: 'Balance sheet', icon: <BalanceSheetIcon /> },
 ]
 
 const SETUP_ITEMS = [
@@ -180,6 +193,13 @@ export function AppShell({
 
           <NavSectionHeader>Ledger</NavSectionHeader>
           {LEDGER_ITEMS.map((item) => (
+            <NavItem key={item.path} icon={item.icon} value={item.path}>
+              {item.label}
+            </NavItem>
+          ))}
+
+          <NavSectionHeader>Reports</NavSectionHeader>
+          {REPORT_ITEMS.map((item) => (
             <NavItem key={item.path} icon={item.icon} value={item.path}>
               {item.label}
             </NavItem>

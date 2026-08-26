@@ -19,11 +19,13 @@ import { getEntities } from './api/entities'
 import type { LegalEntitySummary } from './api/entities'
 import { AppShell } from './components/AppShell'
 import { AgeingPage } from './pages/AgeingPage'
+import { BalanceSheetPage } from './pages/BalanceSheetPage'
 import { ChartOfAccountsPage } from './pages/ChartOfAccountsPage'
 import { EntitiesPage } from './pages/EntitiesPage'
 import { InvoicesPage } from './pages/InvoicesPage'
 import { JournalsPage } from './pages/JournalsPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
+import { ProfitAndLossPage } from './pages/ProfitAndLossPage'
 import { ReceiptsPage } from './pages/ReceiptsPage'
 import { SignInPage } from './pages/SignInPage'
 import { StockPage } from './pages/StockPage'
@@ -156,6 +158,8 @@ function App() {
           <Route path="/stock" element={<StockPage entityId={selectedEntityId} />} />
           <Route path="/journals" element={<JournalsPage entityId={selectedEntityId} />} />
           <Route path="/trial-balance" element={<TrialBalancePage entityId={selectedEntityId} />} />
+          <Route path="/profit-and-loss" element={<ProfitAndLossPage entityId={selectedEntityId} />} />
+          <Route path="/balance-sheet" element={<BalanceSheetPage entityId={selectedEntityId} />} />
           <Route
             path="/settings"
             element={
