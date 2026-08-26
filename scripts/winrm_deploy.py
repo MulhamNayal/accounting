@@ -19,14 +19,17 @@ FORWARDED = (
 
 
 def env(name: str) -> str:
-    """Reads a secret, stripping surrounding whitespace.
+    """Reads a secret, stripping a byte order mark and surrounding whitespace.
 
-    A secret set by piping into `gh secret set` from PowerShell keeps the trailing CRLF the
-    pipeline adds, and GitHub stores it verbatim. A stray carriage return is invisible in
-    every log -- values are masked -- but it makes pywinrm reject the host outright, and it
-    would silently become part of the seeded password.
+    A secret set by piping into `gh secret set` from Windows PowerShell arrives with a UTF-8
+    BOM at the front and the pipeline's CRLF at the end, and GitHub stores both verbatim.
+    Neither is visible in any log, because secret values are masked. The symptoms are
+    baffling on purpose-built error messages: pywinrm rejects the host as an invalid URL, and
+    Npgsql reports `Couldn't set ﻿host` for a connection string that looks perfect.
+
+    U+FEFF is not whitespace to `str.strip()`, so it needs removing by name.
     """
-    return os.environ[name].strip()
+    return os.environ[name].lstrip("﻿").strip()
 
 
 def ps_literal(value: str) -> str:
