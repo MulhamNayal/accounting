@@ -35,8 +35,20 @@ public sealed class PostingService(
     AccountingDbContext db,
     ICurrentUser currentUser,
     INumberSeriesService numbers,
-    ILogger<PostingService> logger) : IPostingService
+    ILogger<PostingService> logger,
+    TimeProvider? clock = null) : IPostingService
 {
+    /// <summary>
+    /// Where "today" comes from when a reversal has to be dated.
+    /// </summary>
+    /// <remarks>
+    /// Injectable because a reversal's date is a business fact, not an implementation detail:
+    /// a test that reverses an entry has to be able to say when it is happening. Reading the
+    /// wall clock directly made the suite pass only while the calendar sat inside the test
+    /// fixture's open period, and it stopped passing on its own the day that month ended.
+    /// </remarks>
+    private readonly TimeProvider _clock = clock ?? TimeProvider.System;
+
     private const string JournalEntryDocumentType = "JournalEntry";
 
     public async Task<JournalEntryDetail> PostAsync(
@@ -87,7 +99,7 @@ public sealed class PostingService(
                 ? "Manual"
                 : request.SourceDocumentType,
             SourceDocumentId = request.SourceDocumentId,
-            PostedAtUtc = DateTimeOffset.UtcNow,
+            PostedAtUtc = _clock.GetUtcNow(),
             PostedByUserId = userId,
             Memo = request.Memo,
         };
@@ -141,7 +153,7 @@ public sealed class PostingService(
         // The reversal is dated today, not on the original's date: posting it back into the
         // original period would silently restate a figure that may already have been
         // reported. If today's period is closed, the caller is told rather than worked around.
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);
         var period = await ResolvePeriodAsync(original.LegalEntityId, today, ct);
 
         await using var scope = await BeginOrJoinAsync(ct);
@@ -157,7 +169,7 @@ public sealed class PostingService(
             PeriodId = period.Id,
             SourceDocumentType = original.SourceDocumentType,
             SourceDocumentId = original.SourceDocumentId,
-            PostedAtUtc = DateTimeOffset.UtcNow,
+            PostedAtUtc = _clock.GetUtcNow(),
             PostedByUserId = userId,
             ReversesEntryId = original.Id,
             ReasonCode = reasonCode,

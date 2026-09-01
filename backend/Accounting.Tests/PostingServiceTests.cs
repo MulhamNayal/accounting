@@ -14,7 +14,11 @@ public class PostingServiceTests
         var user = new CurrentUser();
         user.SetUser(world.UserId);
         var numbers = new NumberSeriesService(db);
-        return (new PostingService(db, user, numbers, NullLogger<PostingService>.Instance), db);
+        return (
+            new PostingService(
+                db, user, numbers, NullLogger<PostingService>.Instance,
+                FixedClock.InsideTheOpenPeriod),
+            db);
     }
 
     private static PostJournalEntryRequest SimpleEntry(

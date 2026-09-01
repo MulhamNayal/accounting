@@ -30,6 +30,24 @@ public sealed record LedgerWorld(
     public AccountingDbContext NewAppContext() => TestDatabase.CreateAppContext(Context());
 }
 
+/// <summary>
+/// A clock pinned inside the fixture's open period.
+/// </summary>
+/// <remarks>
+/// <c>ReverseAsync</c> dates a reversal on "today", so any test that reverses an entry needs
+/// today to be a date the fixture has an open period for. Left on the system clock the suite
+/// passed only while the real calendar sat inside August 2026, and it went red on its own on
+/// 1 September — which is not a failure anybody had changed anything to cause.
+/// </remarks>
+public sealed class FixedClock(DateTimeOffset now) : TimeProvider
+{
+    /// <summary>Mid-August 2026 — inside <see cref="LedgerWorld.OpenPeriodId"/>.</summary>
+    public static readonly FixedClock InsideTheOpenPeriod =
+        new(new DateTimeOffset(2026, 8, 15, 9, 0, 0, TimeSpan.Zero));
+
+    public override DateTimeOffset GetUtcNow() => now;
+}
+
 public static class LedgerFixture
 {
     public static async Task<LedgerWorld> CreateAsync()

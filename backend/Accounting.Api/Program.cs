@@ -63,6 +63,10 @@ builder.Services.AddAuthorization(options =>
 
 // ---------------------------------------------------------------- services
 
+// The wall clock, injected rather than read statically, so a business date taken from "today"
+// can be pinned in a test.
+builder.Services.AddSingleton(TimeProvider.System);
+
 // Scoped: the tenant is resolved per request, and the interceptor reads it whenever a
 // connection opens.
 builder.Services.AddScoped<ITenantContext, TenantContext>();
