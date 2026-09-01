@@ -11,6 +11,17 @@ public interface IPostingService
 {
     Task<JournalEntryDetail> PostAsync(PostJournalEntryRequest request, CancellationToken ct = default);
 
+    /// <summary>
+    /// Posts a year's closing entry, marked so the statements can tell it apart.
+    /// </summary>
+    /// <remarks>
+    /// Its own method rather than a flag on <see cref="PostJournalEntryRequest"/>, so the
+    /// mark cannot be set from a request body. See
+    /// <see cref="PostClosingJournalEntryRequest"/>.
+    /// </remarks>
+    Task<JournalEntryDetail> PostClosingEntryAsync(
+        PostClosingJournalEntryRequest request, CancellationToken ct = default);
+
     Task<JournalEntryDetail> ReverseAsync(Guid entryId, string reasonCode, CancellationToken ct = default);
 
     Task<JournalEntryDetail> GetAsync(Guid entryId, CancellationToken ct = default);
@@ -51,25 +62,61 @@ public sealed class PostingService(
 
     private const string JournalEntryDocumentType = "JournalEntry";
 
-    public async Task<JournalEntryDetail> PostAsync(
-        PostJournalEntryRequest request, CancellationToken ct = default)
+    /// <summary>What a year-end closing entry records as its source.</summary>
+    private const string YearEndCloseDocumentType = "YearEndClose";
+
+    public Task<JournalEntryDetail> PostAsync(
+        PostJournalEntryRequest request, CancellationToken ct = default) =>
+        PostCoreAsync(
+            request.LegalEntityId,
+            request.EntryDate,
+            request.Lines,
+            string.IsNullOrWhiteSpace(request.SourceDocumentType)
+                ? "Manual"
+                : request.SourceDocumentType,
+            request.SourceDocumentId,
+            request.Memo,
+            closesFiscalYearId: null,
+            ct);
+
+    public Task<JournalEntryDetail> PostClosingEntryAsync(
+        PostClosingJournalEntryRequest request, CancellationToken ct = default) =>
+        PostCoreAsync(
+            request.LegalEntityId,
+            request.EntryDate,
+            request.Lines,
+            YearEndCloseDocumentType,
+            request.FiscalYearId,
+            request.Memo,
+            closesFiscalYearId: request.FiscalYearId,
+            ct);
+
+    private async Task<JournalEntryDetail> PostCoreAsync(
+        Guid legalEntityId,
+        DateOnly entryDate,
+        IReadOnlyList<PostingLineRequest> requestLines,
+        string sourceDocumentType,
+        Guid? sourceDocumentId,
+        string? memo,
+        Guid? closesFiscalYearId,
+        CancellationToken ct)
     {
         var userId = currentUser.UserId
             ?? throw new PostingValidationException(
                 "No acting user. An entry that cannot be attributed to someone must not be posted.");
 
-        var entity = await db.LegalEntities.FirstOrDefaultAsync(e => e.Id == request.LegalEntityId, ct)
-            ?? throw new NotFoundException($"No entity with id {request.LegalEntityId}.");
+        var entity = await db.LegalEntities.FirstOrDefaultAsync(e => e.Id == legalEntityId, ct)
+            ?? throw new NotFoundException($"No entity with id {legalEntityId}.");
 
-        if (request.Lines is null || request.Lines.Count < 2)
+        if (requestLines is null || requestLines.Count < 2)
         {
             throw new PostingValidationException(
                 "An entry needs at least two lines — one debit and one credit.");
         }
 
-        var period = await ResolvePeriodAsync(entity.Id, request.EntryDate, ct);
+        var period = await ResolvePeriodAsync(entity.Id, entryDate, ct);
 
-        var lines = await BuildLinesAsync(request, entity, ct);
+        var lines = await BuildLinesAsync(requestLines, entity, ct);
 
         var debits = lines.Where(l => l.Direction == PostingDirection.Debit).Sum(l => l.FunctionalAmount);
         var credits = lines.Where(l => l.Direction == PostingDirection.Credit).Sum(l => l.FunctionalAmount);
@@ -92,16 +139,15 @@ public sealed class PostingService(
             TenantId = entity.TenantId,
             LegalEntityId = entity.Id,
             EntryNo = await numbers.AllocateAsync(
-                entity.Id, JournalEntryDocumentType, request.EntryDate, ct),
-            EntryDate = request.EntryDate,
+                entity.Id, JournalEntryDocumentType, entryDate, ct),
+            EntryDate = entryDate,
             PeriodId = period.Id,
-            SourceDocumentType = string.IsNullOrWhiteSpace(request.SourceDocumentType)
-                ? "Manual"
-                : request.SourceDocumentType,
-            SourceDocumentId = request.SourceDocumentId,
+            SourceDocumentType = sourceDocumentType,
+            SourceDocumentId = sourceDocumentId,
             PostedAtUtc = _clock.GetUtcNow(),
             PostedByUserId = userId,
-            Memo = request.Memo,
+            Memo = memo,
+            ClosesFiscalYearId = closesFiscalYearId,
         };
 
         var lineNo = 1;
@@ -174,6 +220,10 @@ public sealed class PostingService(
             ReversesEntryId = original.Id,
             ReasonCode = reasonCode,
             Memo = $"Reversal of {original.EntryNo}",
+            // Carried across so the statements' single "exclude closing entries" filter
+            // covers the reversal too. Without it a reversed close would leave the reversal's
+            // amounts showing as the year's income and expenses.
+            ClosesFiscalYearId = original.ClosesFiscalYearId,
         };
 
         var lineNo = 1;
@@ -343,16 +393,16 @@ public sealed class PostingService(
     }
 
     private async Task<List<Posting>> BuildLinesAsync(
-        PostJournalEntryRequest request, LegalEntity entity, CancellationToken ct)
+        IReadOnlyList<PostingLineRequest> requestLines, LegalEntity entity, CancellationToken ct)
     {
-        var accountIds = request.Lines.Select(l => l.AccountId).Distinct().ToList();
+        var accountIds = requestLines.Select(l => l.AccountId).Distinct().ToList();
         var accounts = await db.Accounts
             .Where(a => accountIds.Contains(a.Id))
             .ToDictionaryAsync(a => a.Id, ct);
 
         var lines = new List<Posting>();
 
-        foreach (var line in request.Lines)
+        foreach (var line in requestLines)
         {
             if (!accounts.TryGetValue(line.AccountId, out var account))
             {

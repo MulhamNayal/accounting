@@ -62,6 +62,23 @@ public class JournalEntry
     /// </summary>
     public string? ReasonCode { get; set; }
 
+    /// <summary>
+    /// Set on the entry that transfers a year's income and expenses to retained earnings,
+    /// and carried onto its reversal.
+    /// </summary>
+    /// <remarks>
+    /// A closing entry is dated inside the year it closes and debits every income account,
+    /// so a profit and loss account filtered on dates alone would report a closed year as
+    /// nothing at all. This marks the entry so the statement can leave it out, and gives
+    /// year → closing entry for free.
+    /// <para>
+    /// Like <c>ReversesEntryId</c> it points backwards, from the entry to what it refers to.
+    /// Nothing on the fiscal year has to be updated for it to exist.
+    /// </para>
+    /// </remarks>
+    public Guid? ClosesFiscalYearId { get; set; }
+    public FiscalYear? ClosesFiscalYear { get; set; }
+
     public string? Memo { get; set; }
 
     public ICollection<Posting> Postings { get; set; } = [];

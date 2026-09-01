@@ -825,6 +825,12 @@ public class AccountingDbContext(DbContextOptions<AccountingDbContext> options) 
             e.HasOne(x => x.Supersedes).WithMany()
                 .HasForeignKey(x => x.SupersedesEntryId).OnDelete(DeleteBehavior.Restrict);
 
+            // Filtered: only the handful of closing entries carry it, and the statements
+            // query it as "IS NULL" on every read.
+            e.HasIndex(x => x.ClosesFiscalYearId).HasFilter("closes_fiscal_year_id IS NOT NULL");
+            e.HasOne(x => x.ClosesFiscalYear).WithMany()
+                .HasForeignKey(x => x.ClosesFiscalYearId).OnDelete(DeleteBehavior.Restrict);
+
             // A correction with no stated reason is what an auditor asks about first.
             e.ToTable(t => t.HasCheckConstraint(
                 "ck_journal_entry_reversal_has_reason",

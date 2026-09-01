@@ -27,6 +27,7 @@ import { EntitiesPage } from './pages/EntitiesPage'
 import { InvoicesPage } from './pages/InvoicesPage'
 import { JournalsPage } from './pages/JournalsPage'
 import { PayablesAgeingPage } from './pages/PayablesAgeingPage'
+import { PeriodsPage } from './pages/PeriodsPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { ProfitAndLossPage } from './pages/ProfitAndLossPage'
 import { ReceiptsPage } from './pages/ReceiptsPage'
@@ -165,6 +166,7 @@ function App() {
           <Route path="/payables-ageing" element={<PayablesAgeingPage entityId={selectedEntityId} />} />
           <Route path="/stock" element={<StockPage entityId={selectedEntityId} />} />
           <Route path="/journals" element={<JournalsPage entityId={selectedEntityId} />} />
+          <Route path="/periods" element={<PeriodsPage entityId={selectedEntityId} />} />
           <Route path="/trial-balance" element={<TrialBalancePage entityId={selectedEntityId} />} />
           <Route path="/profit-and-loss" element={<ProfitAndLossPage entityId={selectedEntityId} />} />
           <Route path="/balance-sheet" element={<BalanceSheetPage entityId={selectedEntityId} />} />
@@ -172,7 +174,8 @@ function App() {
             path="/settings"
             element={
               <PlaceholderPage title="Settings" layer="a later layer">
-                Number series, fiscal years and period closing, tax codes and user access.
+                Number series, tax codes and user access. Fiscal years and period closing have
+                their own page, under Ledger.
               </PlaceholderPage>
             }
           />

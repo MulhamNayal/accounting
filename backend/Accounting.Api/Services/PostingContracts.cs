@@ -9,6 +9,20 @@ public record PostJournalEntryRequest(
     string? SourceDocumentType = null,
     Guid? SourceDocumentId = null);
 
+/// <summary>A request to post the entry that closes a fiscal year.</summary>
+/// <remarks>
+/// Deliberately a separate shape from <see cref="PostJournalEntryRequest"/>, which is bound
+/// from a request body. The profit and loss account excludes closing entries, so a client
+/// able to mark any entry as one would have a way to hide a year's income from the report.
+/// Nothing reachable from a controller can set this.
+/// </remarks>
+public record PostClosingJournalEntryRequest(
+    Guid LegalEntityId,
+    Guid FiscalYearId,
+    DateOnly EntryDate,
+    IReadOnlyList<PostingLineRequest> Lines,
+    string? Memo = null);
+
 /// <summary>
 /// One line. <see cref="Amount"/> is always positive — the side is
 /// <see cref="Direction"/>, never the sign.

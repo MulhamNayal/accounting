@@ -25,6 +25,9 @@ Built, tested, and deployed:
 | Tax as effective-dated regimes and codes | ✅ |
 | Consolidation, elimination, IAS 21 translation | ✅ |
 | Authentication, tenant isolation, row level security | ✅ |
+| Fiscal years and periods, generated and provisioned | ✅ |
+| Period close and reopen, with an enforced audit trail | ✅ |
+| Year-end close: closing entry, then finalise | ✅ |
 
 That is a correct double-entry core with both trading sides. It is not yet a product a
 business can run on, and the gap is wider than the list above is long.
@@ -33,16 +36,29 @@ business can run on, and the gap is wider than the list above is long.
 
 ## What is missing, in the order I would build it
 
-### 1. Period close and year-end
+### 1. Period close and year-end — built
 
-**Why first:** every other item on this list is easier once periods can be locked, and the
-balance sheet currently derives retained earnings rather than reading it from an account
-precisely because there is no close. A business cannot file anything without being able to
-say "this year is finished."
+**Why first:** every other item on this list is easier once periods can be locked, and a
+business cannot file anything without being able to say "this year is finished."
 
-Needs: period state transitions with an audit trail (the model is already there), the
-year-end entry that transfers profit to retained earnings, and locking that survives a
-reopen request.
+Built as specified in `docs/superpowers/specs/2026-08-30-period-close-design.md`. Three things
+are worth carrying forward:
+
+- **Closing runs in sequence; reopening does not.** Only the earliest open period may be
+  closed. Reopening any closed period is allowed, with a reason — safe here specifically
+  because every balance is derived from postings, so there is no stored opening balance for a
+  reopened month to invalidate.
+- **Year-end is two steps.** The closing entry is an ordinary, reversible journal entry;
+  finalising the year is separate and terminal. A late adjustment is survivable until the
+  moment the year is filed.
+- **The state machine is enforced by PostgreSQL, not by the services.** A change to a period's
+  state is refused unless a matching `period_events` row is written in the same transaction,
+  hard closed has no transition out of it, a period carrying postings cannot have its dates
+  moved, and neither periods nor years can be deleted. The spec had defended terminality as
+  "an absent code path", which is application discipline — the one thing this project refuses
+  to rely on anywhere else.
+
+Numbers 2 onward below are unchanged.
 
 ### 2. Bank reconciliation
 
@@ -162,6 +178,7 @@ analytical reports. All real, none of them blocking a first customer.
 ## The honest summary
 
 The hard, differentiating part is built: books that cannot be altered without evidence,
-enforced below the application. Items 1 through 4 are what stand between that and something a
-Malaysian business could legally run on. Items 5 through 10 are what stand between it and
-something they would choose over what they already have.
+enforced below the application — now including the period trail, which is the specific
+weakness measured in the incumbent. Items 2 through 4 are what stand between that and
+something a Malaysian business could legally run on. Items 5 through 10 are what stand between
+it and something they would choose over what they already have.

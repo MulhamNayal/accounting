@@ -40,7 +40,8 @@ public sealed class FinancialStatementsService(AccountingDbContext db) : IFinanc
             [AccountType.Income, AccountType.Expense],
             from,
             to,
-            ct);
+            ct,
+            excludeClosingEntries: true);
 
         // Income is a credit balance and expense a debit balance, so each is signed to read
         // positive in its own section.
@@ -114,18 +115,31 @@ public sealed class FinancialStatementsService(AccountingDbContext db) : IFinanc
     /// <summary>
     /// Debit and credit totals per account for the given types and date range.
     /// </summary>
+    /// <param name="excludeClosingEntries">
+    /// True only for the profit and loss account. The year-end closing entry is dated inside
+    /// the year it closes and debits every income account, so leaving it in makes a closed
+    /// year report nothing at all.
+    /// <para>
+    /// It must stay false for the balance sheet. The same entry credits retained earnings, and
+    /// excluding it would take that credit out of equity while
+    /// <see cref="ResultAsync"/> — which must also keep it, for the opposite reason — still
+    /// nets the year's trading to zero. The sheet would stop balancing.
+    /// </para>
+    /// </param>
     private async Task<List<AccountBalance>> BalancesByAccountAsync(
         Guid legalEntityId,
         AccountType[] types,
         DateOnly from,
         DateOnly to,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool excludeClosingEntries = false)
     {
         var rows = await db.Postings
             .AsNoTracking()
             .Where(p => p.LegalEntityId == legalEntityId
                         && p.JournalEntry!.EntryDate >= from
                         && p.JournalEntry.EntryDate <= to
+                        && (!excludeClosingEntries || p.JournalEntry.ClosesFiscalYearId == null)
                         && types.Contains(p.Account!.AccountType))
             .GroupBy(p => new { p.AccountId, p.Account!.Code, p.Account.Name, p.Account.AccountType })
             .Select(g => new
@@ -148,6 +162,12 @@ public sealed class FinancialStatementsService(AccountingDbContext db) : IFinanc
     }
 
     /// <summary>Income less expenses for a date range, in one query.</summary>
+    /// <remarks>
+    /// Closing entries are deliberately left in. This feeds the balance sheet's retained
+    /// earnings figures, and a closed year's income and expenses netting to zero here is
+    /// exactly what stops the retained earnings account and this calculation from both
+    /// reporting the same profit.
+    /// </remarks>
     private async Task<decimal> ResultAsync(
         Guid legalEntityId, DateOnly from, DateOnly to, CancellationToken ct)
     {

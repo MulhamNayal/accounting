@@ -35,6 +35,8 @@ import {
   DocumentBulletListRegular,
   DocumentTableFilled,
   DocumentTableRegular,
+  CalendarLockFilled,
+  CalendarLockRegular,
   BoxFilled,
   BoxRegular,
   DataTrendingFilled,
@@ -67,6 +69,7 @@ import { HEADER_HEIGHT } from '../theme'
 const EntitiesIcon = bundleIcon(BuildingBankFilled, BuildingBankRegular)
 const AccountsIcon = bundleIcon(BookOpenFilled, BookOpenRegular)
 const JournalsIcon = bundleIcon(DocumentTableFilled, DocumentTableRegular)
+const PeriodsIcon = bundleIcon(CalendarLockFilled, CalendarLockRegular)
 const ScalesIcon = bundleIcon(ScalesFilled, ScalesRegular)
 const InvoicesIcon = bundleIcon(DocumentBulletListFilled, DocumentBulletListRegular)
 const ReceiptsIcon = bundleIcon(MoneyFilled, MoneyRegular)
@@ -125,6 +128,7 @@ const STOCK_ITEMS = [
 
 const LEDGER_ITEMS = [
   { path: '/journals', label: 'Journals', icon: <JournalsIcon /> },
+  { path: '/periods', label: 'Periods', icon: <PeriodsIcon /> },
 ]
 
 // Separated from the ledger: these are read-only views of the same postings, and grouping
