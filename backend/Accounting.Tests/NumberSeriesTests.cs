@@ -20,9 +20,9 @@ public class NumberSeriesTests
         var journal = await numbers.AllocateAsync(world.EntityId, "JournalEntry", August);
         var invoice = await numbers.AllocateAsync(world.EntityId, "SalesInvoice", August);
 
-        Assert.Equal("JV-00001", journal);
-
-        // The invoice format interpolates the document year: "IV-{1:yyyy}-{0:D5}".
+        // Both formats interpolate the document year, because both series reset yearly — a
+        // yearly reset without the year in the format reissues last year's numbers.
+        Assert.Equal("JV-2026-00001", journal);
         Assert.Equal("IV-2026-00001", invoice);
     }
 
@@ -38,8 +38,8 @@ public class NumberSeriesTests
         var second = await numbers.AllocateAsync(world.EntityId, "JournalEntry", August);
         await db.SaveChangesAsync();
 
-        Assert.Equal("JV-00001", first);
-        Assert.Equal("JV-00002", second);
+        Assert.Equal("JV-2026-00001", first);
+        Assert.Equal("JV-2026-00002", second);
     }
 
     [Fact]
@@ -175,8 +175,8 @@ public class NumberSeriesTests
                 new PostingLineRequest(world.SalesAccountId, "Credit", 20m),
             ]));
 
-        Assert.Equal("JV-00001", first.EntryNo);
-        Assert.Equal("JV-00002", second.EntryNo);
+        Assert.Equal("JV-2026-00001", first.EntryNo);
+        Assert.Equal("JV-2026-00002", second.EntryNo);
     }
 
     [Fact]
@@ -206,6 +206,6 @@ public class NumberSeriesTests
                 new PostingLineRequest(world.SalesAccountId, "Credit", 100m),
             ]));
 
-        Assert.Equal("JV-00001", accepted.EntryNo);
+        Assert.Equal("JV-2026-00001", accepted.EntryNo);
     }
 }

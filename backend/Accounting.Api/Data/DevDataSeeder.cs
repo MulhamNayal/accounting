@@ -280,7 +280,11 @@ public static class DevDataSeeder
 
         (string DocumentType, string Code, string Name, string Format, bool Gapless)[] definitions =
         [
-            ("JournalEntry", "JV", "Journal Voucher", "JV-{0:D5}", false),
+            // The year belongs in the format because the reset policy is yearly. Without it
+            // the counter restarts each January and produces an entry number that already
+            // exists, which the unique index on (entity, entry_no) refuses — so the first
+            // posting of a new financial year fails. Every other series here already does this.
+            ("JournalEntry", "JV", "Journal Voucher", "JV-{1:yyyy}-{0:D5}", false),
             ("SalesInvoice", "IV", "Sales Invoice", "IV-{1:yyyy}-{0:D5}", true),
             ("CreditNote", "CN", "Credit Note", "CN-{1:yyyy}-{0:D5}", true),
             ("CustomerReceipt", "OR", "Official Receipt", "OR-{1:yyyy}-{0:D5}", false),

@@ -147,7 +147,9 @@ public static class LedgerFixture
             DocumentType = "JournalEntry",
             Code = "JV",
             Name = "Journal Voucher",
-            Format = "JV-{0:D5}",
+            // The year is in the format because the reset is yearly — without it the counter
+            // restarts each January onto numbers that already exist.
+            Format = "JV-{1:yyyy}-{0:D5}",
             ResetPolicy = NumberResetPolicy.Yearly,
             IsGapless = false,
             IsDefault = true,
